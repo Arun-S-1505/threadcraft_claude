@@ -78,12 +78,12 @@
   .tc-nav__burger { display: inline-grid; }
   .tc-nav__inner > .tc-brand { justify-self: center; grid-column: 2; grid-row: 1; }
   .tc-nav__burger { grid-column: 1; grid-row: 1; }
-  .tc-nav__actions { grid-column: 3; grid-row: 1; gap: 16px; }
+  .tc-nav__actions { grid-column: 3; grid-row: 1; gap: 8px; }
   .tc-brand__word { font-size: 19px; }
   .tc-brand__mark { height: 30px; }
 }
 @media (max-width: 560px) {
-  .tc-nav__wish, .tc-nav__search { display: none; }
+  .tc-nav__wish { display: none; }
   .tc-nav__inner { gap: 8px; }
   .tc-nav__actions { margin-right: -8px; }
 }

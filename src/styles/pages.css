@@ -91,3 +91,7 @@
 
 .tc-formfield .tc-btn { justify-self: start; }
 .tc-auth__form .tc-btn { justify-self: stretch; }
+
+.tc-contact--merged { padding-block: clamp(20px, 2.4vw, 28px) clamp(28px, 4vw, 48px); align-items: center; }
+.tc-craft__intro { padding-block: clamp(20px, 2.4vw, 28px) clamp(28px, 4vw, 48px); }
+@media (max-width: 900px) { .tc-craft__intro .tc-studio__art { order: 0; max-width: 360px; } }

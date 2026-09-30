@@ -174,7 +174,6 @@ export default function Navbar({ announcement = false }) {
           {NAV_LINKS.map((l) => (
             <Link key={l.to} to={l.to}>{l.label}</Link>
           ))}
-          <button type="button" className="tc-mobile__search" onClick={() => { setMenuOpen(false); setSearchOpen(true) }}>Search</button>
           <Link to="/wishlist">Wishlist</Link>
           <Link to={loggedIn ? '/account' : '/login'}>{loggedIn ? 'My account' : 'Log in / Sign up'}</Link>
         </nav>

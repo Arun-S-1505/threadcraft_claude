@@ -22,21 +22,13 @@ export default function BulkOrdersPage() {
 
   return (
     <div className="tc-page">
-      <header className="tc-pagehead">
-        <div className="tc-container">
+      <section className="tc-container tc-contact tc-contact--bulk tc-contact--merged" id="quote-form">
+        <div>
           <p className="tc-eyebrow">Bulk orders</p>
           <h1 className="tc-h2 tc-h2--page">Merchandise for teams and companies</h1>
           <p className="tc-lead">
-            Uniforms, event tees and corporate gifting, printed at volume with your branding. Tell us what you need and we will send a quote.
+            Uniforms, event tees and corporate gifting, printed at volume with your branding. Tell us what you need and we will reply with a quote and timeline.
           </p>
-        </div>
-      </header>
-
-      <section className="tc-container tc-section tc-section--tight tc-contact tc-contact--bulk" id="quote-form">
-        <div>
-          <p className="tc-eyebrow">Request a quote</p>
-          <h2 className="tc-h2">Tell us about your order</h2>
-          <p className="tc-lead">Share a few details and we will get back to you with pricing and timelines.</p>
           <p className="tc-note">
             Prefer email? Write to <a className="tc-link" href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
           </p>
