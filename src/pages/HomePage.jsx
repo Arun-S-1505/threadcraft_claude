@@ -14,7 +14,7 @@ function Hero() {
           <p className="tc-eyebrow">Custom printed apparel</p>
           <h1 className="tc-h1">Considered clothing, printed to order.</h1>
           <p className="tc-lead">
-            Original collections and a print studio for your own designs. {SITE.policy.fabricGsm} GSM combed cotton, made in India.
+            Original collections and a print studio for your own designs. Regular fit in {SITE.policy.gsmRegular} GSM, oversized in {SITE.policy.gsmOversized} GSM. Made in India.
           </p>
           <div className="tc-hero__cta">
             <Link to="/shop" className="tc-btn tc-btn--primary tc-btn--lg">Shop the collection</Link>
@@ -129,7 +129,7 @@ function StudioSection() {
 
 /* ───────── Why ThreadCraft ───────── */
 const WHY = [
-  { title: 'Fabric', text: `${SITE.policy.fabricGsm} GSM, 100% combed cotton with a structured drape.` },
+  { title: 'Fabric', text: `${SITE.policy.gsmRegular} GSM regular fit and ${SITE.policy.gsmOversized} GSM oversized, in 100% cotton.` },
   { title: 'Printing', text: 'High-resolution digital printing for vivid, durable colour.' },
   { title: 'Dispatch', text: `Custom pieces are printed and shipped within ${SITE.policy.dispatchHours} hours.` },
   { title: 'Returns', text: `${SITE.policy.returnDays}-day returns on stock items. Free reprint if we get a custom print wrong.` },

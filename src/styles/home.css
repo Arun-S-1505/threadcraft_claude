@@ -1,6 +1,6 @@
 /* Home page: quiet, editorial layout */
 
-.tc-hero { padding: calc(var(--nav-h) + var(--ann-h) + clamp(32px, 5vw, 72px)) 0 clamp(56px, 7vw, 104px); }
+.tc-hero { padding: calc(var(--nav-h) + var(--ann-h) + clamp(24px, 3.5vw, 48px)) 0 clamp(40px, 5vw, 72px); }
 .tc-hero__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: clamp(32px, 6vw, 96px); }
 .tc-hero__cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
 .tc-hero .tc-h1 { color: var(--ink); max-width: 13ch; }
@@ -23,7 +23,7 @@
 @media (max-width: 900px) { .tc-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* Studio */
-.tc-studio { padding-block: clamp(64px, 8vw, 120px); background: var(--paper-2); }
+.tc-studio { padding-block: clamp(44px, 6vw, 84px); background: var(--paper-2); }
 .tc-studio__grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(32px, 6vw, 96px); align-items: center; }
 .tc-studio__art { background: var(--paper); aspect-ratio: 1 / 1; display: grid; place-items: center; padding: 10%; }
 .tc-studio__art .tc-garment { width: 100%; height: auto; filter: drop-shadow(0 14px 14px rgba(27, 27, 26, 0.14)); }
@@ -36,14 +36,14 @@
 @media (max-width: 900px) { .tc-studio__grid { grid-template-columns: 1fr; } .tc-studio__art { order: 2; } }
 
 /* Why */
-.tc-why__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(24px, 3vw, 48px); border-top: 1px solid var(--line-strong); padding-top: 32px; }
+.tc-why__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(24px, 3vw, 48px); border-top: 1px solid var(--line-strong); padding-top: 24px; }
 .tc-why__item h3 { font-family: var(--serif); font-size: 19px; font-weight: 400; margin-bottom: 8px; }
 .tc-why__item p { font-size: 14px; color: var(--muted); max-width: 30ch; }
 @media (max-width: 900px) { .tc-why__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .tc-why__grid { grid-template-columns: 1fr; } }
 
 /* Bulk */
-.tc-bulk { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; padding: clamp(28px, 4vw, 56px) 0; border-block: 1px solid var(--line); }
+.tc-bulk { display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; padding: clamp(20px, 3vw, 36px) 0; border-block: 1px solid var(--line); }
 .tc-bulk .tc-lead { max-width: 50ch; }
 .tc-bulk__actions { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 

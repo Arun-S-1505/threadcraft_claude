@@ -214,7 +214,7 @@ const products = [
     art: null,
     tag: 'Customisable',
     colors: [C.onyx, C.white, C.bone, C.navy, C.sage],
-    blurb: `Plain ${SITE.policy.fabricGsm} GSM combed cotton. Wear it as is, or take it to the studio and make it yours.`,
+    blurb: `Plain ${SITE.policy.gsmRegular} GSM cotton. Wear it as is, or take it to the studio and make it yours.`,
   },
 ]
 

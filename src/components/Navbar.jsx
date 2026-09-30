@@ -82,8 +82,18 @@ export default function Navbar({ announcement = false }) {
   return (
     <>
       {announcement && (
-        <div className="tc-ann" data-hidden={scrolled} role="region" aria-label="Store announcement">
-          <p>{ann[0]}</p>
+        <div className="tc-ann" data-hidden={scrolled} role="region" aria-label="Store announcements">
+          <div className="tc-ann__track">
+            {[0, 1].map((dup) => (
+              <ul key={dup} className="tc-ann__list" aria-hidden={dup === 1}>
+                {ann.map((t) => (
+                  <li key={t + dup}>
+                    <Icon name="needle" size={14} /> {t}
+                  </li>
+                ))}
+              </ul>
+            ))}
+          </div>
         </div>
       )}
 
@@ -107,13 +117,17 @@ export default function Navbar({ announcement = false }) {
           </nav>
 
           <div className="tc-nav__actions">
-            <button className="tc-nav__text" aria-label="Search (Ctrl K)" onClick={() => setSearchOpen(true)}>
-              <Icon name="search" size={19} />
+            <button className="tc-iconbtn tc-nav__search" aria-label="Search (Ctrl K)" onClick={() => setSearchOpen(true)}>
+              <Icon name="search" size={20} />
             </button>
+            <Link to="/wishlist" className="tc-iconbtn tc-nav__wish" aria-label={`Wishlist, ${wishlist.length} items`}>
+              <Icon name="heart" size={20} />
+              {wishlist.length > 0 && <span className="tc-count">{wishlist.length}</span>}
+            </Link>
 
             <div className="tc-profile" ref={profileRef}>
-              <button className="tc-nav__text" aria-label="Account" aria-expanded={profileOpen} onClick={() => setProfileOpen((v) => !v)}>
-                Account
+              <button className="tc-iconbtn" aria-label="Account" aria-expanded={profileOpen} onClick={() => setProfileOpen((v) => !v)}>
+                <Icon name="user" size={20} />
               </button>
               {profileOpen && (
                 <div className="tc-menu" role="menu">
@@ -137,8 +151,9 @@ export default function Navbar({ announcement = false }) {
               )}
             </div>
 
-            <button className="tc-nav__text tc-nav__bag" aria-label={`Open bag, ${count} items`} onClick={openDrawer}>
-              Bag ({count})
+            <button className="tc-iconbtn tc-nav__bag" aria-label={`Open bag, ${count} items`} onClick={openDrawer}>
+              <Icon name="bag" size={20} />
+              {count > 0 && <span className="tc-count">{count}</span>}
             </button>
           </div>
         </div>
@@ -159,6 +174,7 @@ export default function Navbar({ announcement = false }) {
           {NAV_LINKS.map((l) => (
             <Link key={l.to} to={l.to}>{l.label}</Link>
           ))}
+          <button type="button" className="tc-mobile__search" onClick={() => { setMenuOpen(false); setSearchOpen(true) }}>Search</button>
           <Link to="/wishlist">Wishlist</Link>
           <Link to={loggedIn ? '/account' : '/login'}>{loggedIn ? 'My account' : 'Log in / Sign up'}</Link>
         </nav>

@@ -2,6 +2,7 @@ import React, { useRef, useState, useMemo, useEffect, useCallback, Component } f
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Decal, Center } from '@react-three/drei'
 import * as THREE from 'three'
+import { toOversized, makeOversizedGeometry } from './oversizedFit'
 
 /* ───────── Preload 3D Model ───────── */
 useGLTF.preload('/shirt_baked.glb')
@@ -21,12 +22,9 @@ class CanvasErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-surface-container-low text-on-surface-variant p-6 text-center">
-          <span className="material-symbols-outlined text-4xl mb-2 text-primary">3d_rotation</span>
-          <p className="font-label-md text-label-md text-primary">3D Preview Mode</p>
-          <p className="font-body-md text-xs text-on-surface-variant max-w-xs mt-1">
-            WebXR/WebGL fallback active. Select colors and options from the menu.
-          </p>
+        <div className="sx__fallback">
+          <p>3D preview unavailable</p>
+          <small>Your browser could not start WebGL. You can still choose colours and options from the panel.</small>
         </div>
       )
     }
@@ -91,7 +89,20 @@ function getScaleXY(scale) {
 }
 
 /* ───────── Calculate Decal Transform based on Placement ───────── */
-function getPlacementTransform(placement, pos, scale) {
+function getPlacementTransform(placement, pos, scale, fit = 'regular') {
+  const base = getBaseTransform(placement, pos, scale)
+  if (fit !== 'oversized') return base
+  // Same anchor point, moved through the oversized reshaping, with prints a little larger
+  const sleeve = placement === 'left_sleeve' || placement === 'right_sleeve'
+  const k = sleeve ? [1.1, 1.1, 1.1] : [1.2, 1.1, 1.1]
+  return {
+    position: toOversized(base.position),
+    rotation: base.rotation,
+    scale: [base.scale[0] * k[0], base.scale[1] * k[1], base.scale[2] * k[2]],
+  }
+}
+
+function getBaseTransform(placement, pos, scale) {
   const p = placement || 'front'
   const x = pos?.x || 0
   const y = pos?.y || 0.04
@@ -128,7 +139,7 @@ function getPlacementTransform(placement, pos, scale) {
 }
 
 /* ───────── Single Decal Renderer for a Design Item ───────── */
-function SingleDecal({ item, isActive, onSelect }) {
+function SingleDecal({ item, isActive, onSelect, fit }) {
   const textTexture = useMemo(() => {
     if (item.type === 'text' && item.text) {
       return createTextTexture(item.text, item.textColor, item.textSize, item.textFont)
@@ -150,7 +161,7 @@ function SingleDecal({ item, isActive, onSelect }) {
 
   const pos = item.pos || { x: 0, y: 0.04 }
   const scale = getScaleXY(item.scale)
-  const transform = getPlacementTransform(item.placement, pos, scale)
+  const transform = getPlacementTransform(item.placement, pos, scale, fit)
 
   return (
     <Decal
@@ -176,8 +187,12 @@ function SingleDecal({ item, isActive, onSelect }) {
 }
 
 /* ───────── 3D Shirt Model with Solid Material & Multi-Decals ───────── */
-function Model({ color, designList = [], activeDesignId, onSelectDesign }) {
+function Model({ color, designList = [], activeDesignId, onSelectDesign, fit = 'regular' }) {
   const { nodes } = useGLTF('/shirt_baked.glb')
+  const geometry = useMemo(
+    () => (fit === 'oversized' ? makeOversizedGeometry(nodes.T_Shirt_male.geometry) : nodes.T_Shirt_male.geometry),
+    [fit, nodes]
+  )
 
   const materialRef = useRef()
   const targetColor = useMemo(() => new THREE.Color(color), [color])
@@ -190,7 +205,7 @@ function Model({ color, designList = [], activeDesignId, onSelectDesign }) {
 
   return (
     <group scale={10} position={[0, -0.2, 0]}>
-      <mesh geometry={nodes.T_Shirt_male.geometry} castShadow receiveShadow>
+      <mesh key={fit} geometry={geometry} castShadow receiveShadow>
         <meshStandardMaterial
           ref={materialRef}
           color={color}
@@ -208,6 +223,7 @@ function Model({ color, designList = [], activeDesignId, onSelectDesign }) {
             item={item}
             isActive={item.id === activeDesignId}
             onSelect={onSelectDesign}
+            fit={fit}
           />
         ))}
       </mesh>
@@ -222,6 +238,7 @@ export default function TShirt3D({
   activeDesignId = null,
   onSelectDesign,
   viewAngle = 'front',
+  fit = 'regular',
 }) {
   const controlsRef = useRef()
 
@@ -255,8 +272,9 @@ export default function TShirt3D({
           <pointLight position={[0, -2, 5]} intensity={0.3} />
 
           <React.Suspense fallback={null}>
-            <Center>
+            <Center key={fit}>
               <Model
+                fit={fit}
                 color={color}
                 designList={designList}
                 activeDesignId={activeDesignId}
@@ -281,10 +299,7 @@ export default function TShirt3D({
         </Canvas>
 
         {/* Status Hint Footer */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 glass-panel rounded-full px-4 py-2 text-label-sm text-on-surface-variant/70 flex items-center gap-2 pointer-events-none z-10 shadow-sm">
-          <span className="material-symbols-outlined text-[16px]">touch_app</span>
-          Click any design to edit · Use view buttons above to rotate to Front, Back & Sleeves
-        </div>
+        <p className="sx__hint">Click a design to edit it. Use the view buttons to turn the garment.</p>
       </div>
     </CanvasErrorBoundary>
   )

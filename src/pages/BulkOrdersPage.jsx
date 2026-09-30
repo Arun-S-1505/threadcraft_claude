@@ -3,7 +3,7 @@ import { SITE } from '../config/site'
 
 const OFFERS = [
   { title: 'Custom prints', text: 'Your logo or artwork, placed consistently across every piece in the order.' },
-  { title: 'Consistent quality', text: `The same ${SITE.policy.fabricGsm} GSM combed cotton and print process as our own collections.` },
+  { title: 'Consistent quality', text: `The same cotton and print process as our own collections, in ${SITE.policy.gsmRegular} GSM regular fit or ${SITE.policy.gsmOversized} GSM oversized.` },
   { title: 'Sizing across teams', text: 'Full size run from S to XXL, with a size guide for your team to check.' },
   { title: 'Clear timelines', text: 'A quote and production schedule confirmed before anything is printed.' },
 ]
@@ -31,17 +31,6 @@ export default function BulkOrdersPage() {
           </p>
         </div>
       </header>
-
-      <section className="tc-container tc-section tc-section--tight">
-        <div className="tc-offers">
-          {OFFERS.map((o) => (
-            <div key={o.title} className="tc-offers__item">
-              <h3>{o.title}</h3>
-              <p>{o.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
 
       <section className="tc-container tc-section tc-section--tight tc-contact tc-contact--bulk" id="quote-form">
         <div>
@@ -93,6 +82,16 @@ export default function BulkOrdersPage() {
               </div>
             </form>
           )}
+        </div>
+      </section>
+      <section className="tc-container tc-section tc-section--tight">
+        <div className="tc-offers">
+          {OFFERS.map((o) => (
+            <div key={o.title} className="tc-offers__item">
+              <h3>{o.title}</h3>
+              <p>{o.text}</p>
+            </div>
+          ))}
         </div>
       </section>
     </div>

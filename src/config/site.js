@@ -9,7 +9,7 @@ export const SITE = {
   name: 'ThreadCraft',
   tagline: 'Custom printed apparel, made to order',
   description:
-    'Original t-shirt collections and a custom print studio. Premium 240 GSM cotton, HD printing, made to order in India.',
+    'Original t-shirt collections and a custom print studio. Regular fit in 180 GSM and oversized in 240 GSM cotton, HD printing, made to order in India.',
 
   contact: {
     email: 'threadcraftcustomwear@gmail.com',
@@ -36,7 +36,8 @@ export const SITE = {
     gstRate: 0.05, // apparel under ₹1,000 is 5% GST in India, adjust if needed
     dispatchHours: 48, // "printed and shipped within 48 hours"
     returnDays: 7,
-    fabricGsm: 240,
+    gsmRegular: 180, // regular fit tees
+    gsmOversized: 240, // oversized tees
   },
 
   // Announcement bar (scrolling strip above the navbar)
@@ -44,7 +45,7 @@ export const SITE = {
     'Free shipping on orders above ₹999',
     'Cash on Delivery available',
     'Custom prints dispatched in 48 hours',
-    'Premium 240 GSM combed cotton',
+    '180 GSM regular · 240 GSM oversized',
   ],
 }
 

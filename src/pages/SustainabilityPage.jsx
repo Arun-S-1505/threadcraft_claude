@@ -22,6 +22,22 @@ export default function SustainabilityPage() {
         </div>
       </header>
 
+      <section className="tc-container tc-section tc-studio__grid tc-craft__fabric">
+        <div className="tc-studio__art" aria-hidden="true">
+          <Garment type="tee" color="#15171F" art="needle" />
+        </div>
+        <div>
+          <p className="tc-eyebrow">The fabric</p>
+          <h2 className="tc-h2">Two weights, one standard</h2>
+          <p className="tc-lead">
+            Our regular fit tees are cut in {SITE.policy.gsmRegular} GSM cotton and our oversized tees in a heavier {SITE.policy.gsmOversized} GSM, so prints look crisp and each fit hangs the way it should. Every product page lists its fit and care details.
+          </p>
+          <div className="tc-studio__cta">
+            <Link to="/shop" className="tc-btn tc-btn--primary">Shop the collection</Link>
+            <Link to="/studio" className="tc-link">Design your own</Link>
+          </div>
+        </div>
+      </section>
       <section className="tc-container tc-section tc-section--tight">
         <ol className="tc-offers">
           {STEPS.map((s, i) => (
@@ -32,23 +48,6 @@ export default function SustainabilityPage() {
             </li>
           ))}
         </ol>
-      </section>
-
-      <section className="tc-container tc-section tc-studio__grid tc-craft__fabric">
-        <div className="tc-studio__art" aria-hidden="true">
-          <Garment type="tee" color="#15171F" art="needle" />
-        </div>
-        <div>
-          <p className="tc-eyebrow">The fabric</p>
-          <h2 className="tc-h2">{SITE.policy.fabricGsm} GSM combed cotton</h2>
-          <p className="tc-lead">
-            We choose a heavier, combed-cotton base so prints look crisp and the tee holds its shape. Every product page lists its fit and care details.
-          </p>
-          <div className="tc-studio__cta">
-            <Link to="/shop" className="tc-btn tc-btn--primary">Shop the collection</Link>
-            <Link to="/studio" className="tc-link">Design your own</Link>
-          </div>
-        </div>
       </section>
     </div>
   )

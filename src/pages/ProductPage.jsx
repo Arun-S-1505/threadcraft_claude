@@ -102,7 +102,9 @@ export default function ProductPage() {
       title: 'Details & fabric',
       body: (
         <ul className="tc-bullets">
-          <li>{SITE.policy.fabricGsm} GSM, 100% combed cotton</li>
+          {(product.type === 'tee' || product.type === 'oversized') && (
+            <li>{product.type === 'oversized' ? SITE.policy.gsmOversized : SITE.policy.gsmRegular} GSM, 100% cotton</li>
+          )}
           <li>{product.type === 'oversized' ? 'Boxy oversized fit with dropped shoulders' : product.type === 'hoodie' ? 'Heavyweight fleece, ribbed cuffs and hem' : product.type === 'polo' ? 'Classic polo collar and placket' : 'Regular fit, ribbed crew neck'}</li>
           <li>{product.art ? 'High-resolution direct-to-garment print' : 'Blank garment, ready for your design in the studio'}</li>
           <li>Printed to order in India</li>

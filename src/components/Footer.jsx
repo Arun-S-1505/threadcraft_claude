@@ -31,7 +31,7 @@ export default function Footer() {
               <img src="/logo-mark.png" alt="" width="40" height="37" className="tc-brand__mark" />
               <span className="tc-brand__word">ThreadCraft</span>
             </Link>
-            <p>Original collections and made-to-order custom prints, crafted in India on {SITE.policy.fabricGsm} GSM cotton.</p>
+            <p>Original collections and made-to-order custom prints, crafted in India on {SITE.policy.gsmRegular} GSM regular and {SITE.policy.gsmOversized} GSM oversized cotton.</p>
             {activeSocials.length > 0 && (
               <div className="tc-social">
                 {activeSocials.map((s) => (
