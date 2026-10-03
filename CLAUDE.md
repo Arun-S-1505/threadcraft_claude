@@ -9,10 +9,10 @@ Owner: ThreadCraft (threadcraftcustomwear@gmail.com). Expected volume: about 50-
 - 3D studio: three, @react-three/fiber, @react-three/drei. Model: `public/shirt_baked.glb` (single mesh node `T_Shirt_male`)
 - Hand-written CSS with `tc-` prefix in `src/styles/` (base, chrome, shop, home, pages, studio), all imported via `brand.css`. Studio uses `sx` / `sx__*` / `sx-seg` / `sx-slider` classes.
 - Tailwind was removed (the CDN script is gone); `base.css` has its own reset. Do not add Tailwind classes.
-- Backend code exists in `worker/` (Hono on Workers, D1, R2) but is NOT deployed. The storefront calls relative `/api/*` (Vite proxies it to `localhost:8787` in dev). Cart/wishlist live in localStorage (StoreContext). There are no customer accounts.
+- Backend code is in `worker/` (Hono on Workers, D1, R2). One Worker named `threadcraft-claude` (root `wrangler.toml`) serves site + API at https://www.threadcraft.company, deployed from GitHub by Cloudflare on every push to main (build `npm run build`, deploy `npx wrangler deploy`). The storefront calls relative `/api/*` (Vite proxies it to `localhost:8787` in dev). Cart/wishlist live in localStorage (StoreContext). There are no customer accounts.
 
 ## Target architecture (decided): all on Cloudflare free tier
-- Frontend: Cloudflare Pages (this Vite app, build `npm run build`, output `dist`). Add a `_redirects` / SPA fallback so client routes work.
+- Frontend: served by the SAME Worker as the API, as static assets from `dist/` (root `wrangler.toml`, `[assets]`, SPA fallback, `run_worker_first = ["/api/*"]`). Not Cloudflare Pages. Never add a `_redirects` file with `/* /index.html 200` (Cloudflare rejects it as a loop).
 - Backend: Cloudflare Workers, written with Hono (Express-like, runs on Workers). Do not use Express directly.
 - Database: Cloudflare D1 (SQLite) for orders, design specs, statuses.
 - Files: Cloudflare R2, PRIVATE bucket, for customer uploads and order preview images. No public access; the admin sees files through short-lived signed URLs or an authenticated Worker route.

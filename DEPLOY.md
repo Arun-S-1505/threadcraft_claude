@@ -1,95 +1,71 @@
 # Deploying ThreadCraft on Cloudflare (free tier)
 
-Everything below needs **your** Cloudflare login and accounts, so it is a checklist for the owner.
-Nothing here has been run yet. Check each free-tier limit on Cloudflare's pricing page first.
+## How it is set up
+**One Cloudflare Worker named `threadcraft-claude` serves everything** at `https://www.threadcraft.company`:
+- the website (the built files in `dist/`, served as static assets, free and unlimited), and
+- the API (`/api/*`, the Hono code in `worker/src`).
 
-## 0. What runs where
-| Piece | Service | Where in this repo |
+Because both live on one address there is no cross-site setup: the browser, checkout and the admin login are all same-origin.
+
+| Piece | Service | Where |
 | --- | --- | --- |
-| Storefront (React) | Cloudflare Pages | repo root, build `npm run build`, output `dist` |
-| API | Cloudflare Worker (Hono) | `worker/` |
-| Orders, designs, statuses | D1 (SQLite) | `worker/schema.sql` |
-| Uploads, previews, backups | R2 (private bucket) | binding `FILES` |
+| Site + API | Cloudflare Worker with static assets | `wrangler.toml` (project root) |
+| Orders, designs, statuses | D1 database `threadcraft` | `worker/schema.sql` |
+| Uploads, previews, backups | R2 bucket `threadcraft-files` (private) | binding `FILES` |
 | Emails | Resend | secret `RESEND_API_KEY` |
-| Payments | Razorpay hosted checkout | needs your merchant account |
+| Payments | Razorpay hosted checkout | secrets below |
 | Owner login | Cloudflare Access | protects `/admin*` and `/api/admin*` |
 
-The storefront calls **relative** `/api/...`. So the Worker must be served on the **same domain** as the site
-(a Worker route `yourdomain.com/api/*`). That also makes the Access login cookie work for the admin screens.
+## Automatic deploys
+The Cloudflare project `threadcraft-claude` is connected to the GitHub repo. Every `git push` to `main` runs:
+- build command: `npm run build`
+- deploy command: `npx wrangler deploy`
 
-## 0b. Domain (name.com with the GitHub Student Pack)
-1. Claim the free domain from the Student Pack offer page, then register it on name.com. Check which extensions the offer includes and when it renews (usually free for 1 year, then the normal price).
-2. In Cloudflare: Add a site, choose the free plan, enter the domain. Cloudflare shows two nameservers.
-3. In name.com: Domain, Nameservers, replace the defaults with Cloudflare's two. This can take from minutes to a few hours.
-4. When Cloudflare says the site is Active, the domain can be used for Pages, the Worker route, Access, and the Resend DNS records (Resend shows 3 to 4 records to paste into Cloudflare DNS).
-5. Razorpay: in the dashboard add the live site under website/app details so live payments are allowed from it. Test keys work without this.
+The Worker name in `wrangler.toml` must stay equal to the project name in the dashboard. Do not add a `_redirects` file with `/* /index.html 200`; Cloudflare rejects it as a loop. The single-page-app fallback is already set in `wrangler.toml`.
 
-## 1. One-time setup (in `worker/`)
+## Settings (`wrangler.toml`)
+- `ALLOWED_ORIGIN`, `FROM_EMAIL`, `ADMIN_EMAILS`: already set for `threadcraft.company`.
+- `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`: fill in after creating the Access app (below), then commit and push.
+- `RAZORPAY_KEY_ID`: add under `[vars]` (the public id, safe to commit).
+
+## Secrets (never commit these; type them in your own terminal)
 ```bash
-npm install
-npx wrangler login
-npx wrangler d1 create threadcraft          # copy the database_id into wrangler.toml
-npx wrangler r2 bucket create threadcraft-files
-npm run db:remote                            # creates the tables
+npx wrangler secret put RESEND_API_KEY --name threadcraft-claude
+npx wrangler secret put RAZORPAY_KEY_SECRET --name threadcraft-claude
+npx wrangler secret put RAZORPAY_WEBHOOK_SECRET --name threadcraft-claude
 ```
-Keep the R2 bucket **private** (do not enable public access or a public domain for it).
+Never set `DEV_ADMIN_EMAIL` in production: it bypasses the admin login and exists only in `worker/.dev.vars`.
 
-## 2. Settings in `worker/wrangler.toml`
-- `ALLOWED_ORIGIN` = your site, e.g. `https://threadcraft.in`
-- `FROM_EMAIL` = an address on a domain you verified in Resend
-- `ADMIN_EMAILS` = the owner email(s) allowed into the admin
-- `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` = from the Cloudflare Access application (step 4)
-- `RAZORPAY_KEY_ID` = the **public** key id (add under `[vars]` once you have the account)
-- Add a route so the Worker answers on your domain, for example:
-  ```toml
-  routes = [{ pattern = "yourdomain.com/api/*", zone_name = "yourdomain.com" }]
-  ```
+## Cloudflare Access (owner-only admin)
+Zero Trust, then Access, then Applications, then add a self-hosted app covering **both** `www.threadcraft.company/admin*` and `www.threadcraft.company/api/admin*`, allowing only the owner email. Copy the application's AUD tag into `ACCESS_AUD` and your `<team>.cloudflareaccess.com` into `ACCESS_TEAM_DOMAIN`. The Worker re-checks the signed Access token and `ADMIN_EMAILS` on every admin request, so the page being hidden is never the protection.
 
-## 3. Secrets (never commit these)
+## Resend
+Verify `threadcraft.company` in Resend. Add the DNS records it shows in Cloudflare DNS, each set to **DNS only** (grey cloud). Create an API key with Sending access and store it with the command above.
+
+## Razorpay
+1. Start in **test mode**: test key id in `wrangler.toml`, test key secret via `wrangler secret put`.
+2. In the Razorpay dashboard add a webhook: `https://www.threadcraft.company/api/webhooks/razorpay`, events `payment.captured` and `payment.failed`, with your own secret (the same value as `RAZORPAY_WEBHOOK_SECRET`).
+3. An order is marked paid **only** by that signed webhook, and only if the captured amount equals the price the server computed.
+4. Switch to live keys after a full test pass. Until Razorpay is configured, the shop offers cash on delivery only.
+
+## Database changes
 ```bash
-npx wrangler secret put RESEND_API_KEY
-npx wrangler secret put RAZORPAY_KEY_SECRET
-npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
+cd worker && npm run db:remote   # re-applies schema.sql (safe: uses IF NOT EXISTS)
 ```
-Never set `DEV_ADMIN_EMAIL` in production. It bypasses the admin login and exists only in `worker/.dev.vars`.
 
-## 4. Protect the admin with Cloudflare Access
-Zero Trust, then Access, then Applications, then add a self-hosted app that covers **both**
-`yourdomain.com/admin*` and `yourdomain.com/api/admin*`. Allow only the owner email.
-Copy the application's AUD tag into `ACCESS_AUD`, and your `<team>.cloudflareaccess.com` into `ACCESS_TEAM_DOMAIN`.
-The Worker re-checks the signed Access token and the `ADMIN_EMAILS` list on every admin request.
+## Backups
+A monthly cron saves last month's orders and messages to R2 under `backups/YYYY-MM/`. In `/admin` you can also export CSV or JSON for any month, or run the backup on demand. D1 also has its own point-in-time restore.
 
-## 5. Deploy
-```bash
-cd worker && npx wrangler deploy
-```
-Then in Cloudflare Pages: connect the Git repo, build command `npm run build`, output directory `dist`, add your domain.
-`public/_redirects` makes client-side routes work; `public/_headers` adds basic security headers.
-
-## 6. Razorpay (when your merchant account is approved)
-1. Start in **test mode**: put the test key id in `wrangler.toml`, the test secrets via `wrangler secret put`.
-2. In the Razorpay dashboard add a webhook: `https://yourdomain.com/api/webhooks/razorpay`,
-   events `payment.captured` and `payment.failed`, secret = your `RAZORPAY_WEBHOOK_SECRET`.
-3. Place a test order. An order is marked paid **only** by that signed webhook, and only if the captured amount equals the price the server computed.
-4. Switch to live keys only after a full test pass.
-Until Razorpay is configured, the shop offers cash on delivery only and custom orders are taken with a "we will send a payment request" message.
-
-## 7. Backups
-- A monthly cron (`wrangler.toml` `[triggers]`) saves last month's orders and messages to R2 under `backups/YYYY-MM/`.
-- In `/admin` you can also export CSV or JSON for any month, or run the backup on demand.
-- D1 has its own point-in-time restore (Time Travel); the R2 copy is an independent readable backup.
-
-## 8. Before going live
-- Set real prices: `src/data/products.js` (shop) and `shared/designSpec.js` (studio). The Worker reads both, so the price shown is the price charged.
-- Real contact details, social links and policies in `src/config/site.js`.
-- Replace the placeholder product artwork with real photos.
-- In `index.html`, make `og:image` an absolute URL on your domain, and add a `sitemap.xml`.
-- Test on a real phone, end to end: studio order, shop order, contact, bulk, track order, admin.
+## Before going live
+- Real prices: `src/data/products.js` (shop) and `shared/designSpec.js` (studio). The Worker reads both, so the displayed price is the charged price.
+- Real contact details, social links and policies in `src/config/site.js`; real product photos.
+- Test on a real phone end to end: studio order, shop order, contact, bulk, track order, admin.
+- Optional: send `threadcraft.company` (without www) to the www address with a Cloudflare Redirect Rule.
 
 ## Local development on this PC
-`wrangler dev` cannot run on this machine (Windows Application Control blocks `workerd.exe`). Use the Node runner instead:
+`wrangler dev` cannot run on this machine (Windows Application Control blocks `workerd.exe`). Use the Node runner:
 ```bash
 cd worker && npm run dev:node     # API on http://localhost:8787 (in-memory data, you are signed in as admin)
-npm run dev                       # storefront on http://localhost:5173, /api is proxied to the API
+npm run dev                       # site on http://localhost:5173, /api is proxied to the API
 cd worker && npm run smoke        # automated API checks
 ```

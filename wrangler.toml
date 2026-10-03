@@ -1,0 +1,50 @@
+# ThreadCraft on Cloudflare: ONE Worker serves the website (static files from dist/) and the API (/api/*).
+# Deployed from Git by Cloudflare: build `npm run build`, deploy `npx wrangler deploy`.
+# The Worker name must match the project name in the Cloudflare dashboard.
+name = "threadcraft-claude"
+main = "worker/src/index.js"
+compatibility_date = "2025-09-01"
+
+# The site's address. Cloudflare creates the DNS record and certificate for it.
+routes = [{ pattern = "www.threadcraft.company", custom_domain = true }]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+# Unknown paths fall back to index.html so React Router handles them.
+not_found_handling = "single-page-application"
+# Only /api/* runs Worker code. Everything else is served straight from the static files
+# (those requests are free and do not count against the Worker request limit).
+run_worker_first = ["/api/*"]
+
+# Non-secret settings. Secrets (RESEND_API_KEY, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET) go in
+# `wrangler secret put`, never in this file. Local values live in worker/.dev.vars.
+[vars]
+# Razorpay: add RAZORPAY_KEY_ID here (the public id) once you have it.
+ALLOWED_ORIGIN = "https://www.threadcraft.company"
+OWNER_EMAIL = "threadcraftcustomwear@gmail.com"
+FROM_EMAIL = "ThreadCraft <orders@threadcraft.company>"  # threadcraft.company must be verified in Resend
+ADMIN_EMAILS = "threadcraftcustomwear@gmail.com"  # allowlist, checked on top of Cloudflare Access
+ACCESS_TEAM_DOMAIN = ""  # e.g. yourteam.cloudflareaccess.com
+ACCESS_AUD = ""          # Application Audience (AUD) tag from the Access app
+
+[[d1_databases]]
+binding = "DB"
+database_name = "threadcraft"
+database_id = "fd9a1c8f-b3bd-4afa-b491-c3149b314b2c"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "threadcraft-files"
+
+# Abuse protection for public routes (10 requests / 60 s per IP)
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+# Monthly backup of last month's orders + messages into R2 (03:00 UTC on the 1st)
+[triggers]
+crons = ["0 3 1 * *"]
