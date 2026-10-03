@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import Icon from './ui/Icon'
 import { SITE } from '../config/site'
 
 const socials = [
@@ -58,7 +57,6 @@ export default function Footer() {
             <Link to="/bulk-orders">Bulk orders</Link>
             <Link to="/sustainability">Our craft</Link>
             <Link to="/track-order">Track an order</Link>
-            <Link to="/account">My account</Link>
           </nav>
 
           <nav aria-label="Help" className="tc-footer__col">

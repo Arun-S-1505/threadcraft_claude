@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import Icon from './ui/Icon'
 import CartDrawer from './CartDrawer'
 import SearchOverlay from './SearchOverlay'
@@ -16,23 +16,14 @@ import { useScrolled } from '../hooks/useReveal'
 export default function Navbar({ announcement = false }) {
   const scrolled = useScrolled(announcement ? 36 : 8)
   const location = useLocation()
-  const navigate = useNavigate()
   const { count, wishlist, openDrawer } = useStore()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [loggedIn, setLoggedIn] = useState(false)
   const profileRef = useRef(null)
 
   const overDark = false
-
-  useEffect(() => {
-    const check = () => setLoggedIn(localStorage.getItem('isLoggedIn') === 'true')
-    check()
-    window.addEventListener('storage', check)
-    return () => window.removeEventListener('storage', check)
-  }, [location])
 
   useEffect(() => {
     setMenuOpen(false)
@@ -67,14 +58,6 @@ export default function Navbar({ announcement = false }) {
       document.removeEventListener('keydown', onKey)
     }
   }, [])
-
-  const logout = () => {
-    localStorage.removeItem('isLoggedIn')
-    localStorage.removeItem('auth')
-    setLoggedIn(false)
-    setProfileOpen(false)
-    navigate('/')
-  }
 
   const ann = SITE.announcements
   const logoSrc = overDark ? '/logo-mark-light.png' : '/logo-mark.png'
@@ -131,22 +114,9 @@ export default function Navbar({ announcement = false }) {
               </button>
               {profileOpen && (
                 <div className="tc-menu" role="menu">
-                  {loggedIn ? (
-                    <>
-                      <Link role="menuitem" to="/account">Profile</Link>
-                      <Link role="menuitem" to="/orders">Orders</Link>
-                      <Link role="menuitem" to="/wishlist">Wishlist{wishlist.length > 0 ? ` (${wishlist.length})` : ''}</Link>
-                      <Link role="menuitem" to="/track-order">Track an order</Link>
-                      <button role="menuitem" onClick={logout}>Log out</button>
-                    </>
-                  ) : (
-                    <>
-                      <Link role="menuitem" to="/login">Log in</Link>
-                      <Link role="menuitem" to="/signup">Create account</Link>
-                      <Link role="menuitem" to="/wishlist">Wishlist{wishlist.length > 0 ? ` (${wishlist.length})` : ''}</Link>
-                      <Link role="menuitem" to="/track-order">Track an order</Link>
-                    </>
-                  )}
+                  <Link role="menuitem" to="/track-order">Track an order</Link>
+                  <Link role="menuitem" to="/wishlist">Wishlist{wishlist.length > 0 ? ` (${wishlist.length})` : ''}</Link>
+                  <Link role="menuitem" to="/contact">Contact us</Link>
                 </div>
               )}
             </div>
@@ -175,7 +145,7 @@ export default function Navbar({ announcement = false }) {
             <Link key={l.to} to={l.to}>{l.label}</Link>
           ))}
           <Link to="/wishlist">Wishlist</Link>
-          <Link to={loggedIn ? '/account' : '/login'}>{loggedIn ? 'My account' : 'Log in / Sign up'}</Link>
+          <Link to="/track-order">Track an order</Link>
         </nav>
         <div className="tc-mobile__foot">
           <p>{SITE.contact.email}</p>

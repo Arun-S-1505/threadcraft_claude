@@ -1,0 +1,50 @@
+/* Owner admin area (/admin). Functional and plain on purpose. */
+.ad { min-height: 100vh; background: var(--paper-2, #f4f3f0); color: var(--ink); font-size: 14px; }
+.ad--center { display: grid; place-content: center; text-align: center; gap: 12px; padding: 24px; }
+.ad--center h1 { font-family: var(--serif); font-weight: 400; font-size: 28px; }
+.ad__bar { display: flex; align-items: center; gap: 28px; padding: 14px 28px; background: var(--paper); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+.ad__bar nav { display: flex; gap: 6px; flex: 1; }
+.ad__bar nav button { padding: 6px 12px; color: var(--muted); border-bottom: 1px solid transparent; }
+.ad__bar nav button.is-on { color: var(--ink); border-bottom-color: var(--ink); }
+.ad__main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 72px; }
+.ad__tools { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; margin-bottom: 18px; }
+.ad__tools label, .ad__card label { display: grid; gap: 4px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.ad select, .ad input[type='month'] { height: 38px; padding: 0 10px; border: 1px solid var(--line-strong); background: var(--paper); font: inherit; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.ad__spacer { flex: 1; }
+.ad__note { color: var(--muted); margin: 10px 0; }
+.ad__muted { color: var(--muted); font-size: 13px; }
+.ad__table { background: var(--paper); border: 1px solid var(--line); overflow-x: auto; }
+.ad__row { display: grid; grid-template-columns: 1.3fr 1fr 1.3fr 0.7fr 0.8fr 1.2fr 0.9fr; gap: 12px; align-items: center; width: 100%; min-width: 820px; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+button.ad__row:hover { background: var(--paper-2, #f4f3f0); }
+.ad__row--head { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.ad__pill { display: inline-block; justify-self: start; padding: 3px 10px; border: 1px solid var(--line-strong); font-size: 12px; text-transform: capitalize; }
+.ad__pill--new { border-color: var(--ink); }
+.ad__pill--paid, .ad__pill--delivered { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.ad__pill--cancelled { color: var(--danger); border-color: var(--danger); }
+.ad__back { margin-bottom: 14px; }
+.ad__head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 18px; }
+.ad__head h1 { font-family: var(--serif); font-weight: 400; font-size: 28px; }
+.ad__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.ad__card { background: var(--paper); border: 1px solid var(--line); padding: 20px; display: grid; gap: 10px; align-content: start; }
+.ad__card h2 { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.ad__card h3 { font-size: 13px; margin: 14px 0 6px; }
+.ad__history { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; }
+.ad__two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.ad__previews { display: flex; flex-wrap: wrap; gap: 12px; }
+.ad__previews figure { width: 46%; }
+.ad__previews img { width: 100%; background: var(--paper-2, #f4f3f0); border: 1px solid var(--line); }
+.ad__previews figcaption { font-size: 12px; color: var(--muted); text-align: center; margin-top: 4px; }
+.ad__viewbtns { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.ad__viewbtns button { padding: 5px 10px; border: 1px solid var(--line-strong); font-size: 12px; }
+.ad__viewbtns button.is-on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.ad__3d { position: relative; height: 420px; background: var(--paper-2, #f4f3f0); border: 1px solid var(--line); }
+.ad__3d .sx__hint { display: none; }
+.ad__items, .ad__files { display: grid; gap: 6px; }
+.ad__files li { display: flex; gap: 14px; }
+.ad__files a { text-decoration: underline; }
+.ad__warn { color: var(--danger); font-style: normal; }
+.ad__msgs { display: grid; gap: 12px; }
+.ad__msgs li { background: var(--paper); border: 1px solid var(--line); padding: 16px; display: grid; gap: 6px; }
+.ad__msgs li.is-done { opacity: 0.55; }
+.ad__msghead { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+@media (max-width: 900px) { .ad__grid, .ad__two { grid-template-columns: 1fr; } .ad__bar { padding: 12px 16px; gap: 14px; } }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { SITE } from '../config/site'
+import { api } from '../lib/api'
 
 const OFFERS = [
   { title: 'Custom prints', text: 'Your logo or artwork, placed consistently across every piece in the order.' },
@@ -9,15 +10,24 @@ const OFFERS = [
 ]
 
 export default function BulkOrdersPage() {
-  const [form, setForm] = useState({ company: '', contact: '', email: '', volume: '50 - 200 units', details: '' })
+  const [form, setForm] = useState({ company: '', contact: '', email: '', volume: '50 - 200 units', details: '', website: '' })
   const [submitted, setSubmitted] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // TODO: send to your backend / email service. For now the request is confirmed on screen only.
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 5000)
+    setSending(true)
+    setError('')
+    try {
+      await api('/api/bulk', { method: 'POST', json: form })
+      setSubmitted(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -70,7 +80,9 @@ export default function BulkOrdersPage() {
                 <textarea id="details" name="details" value={form.details} onChange={handleChange} className="tc-input" placeholder="Garments, colours, print placement, deadline…" rows={5} />
               </div>
               <div className="tc-formfield is-wide">
-                <button className="tc-btn tc-btn--primary" type="submit">Submit request</button>
+                <input name="website" value={form.website} onChange={handleChange} className="tc-hp" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+                <button className="tc-btn tc-btn--primary" type="submit" disabled={sending}>{sending ? 'Sending…' : 'Submit request'}</button>
+                {error && <p className="tc-error" role="alert">{error}</p>}
               </div>
             </form>
           )}

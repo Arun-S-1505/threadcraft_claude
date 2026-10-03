@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import Garment from '../components/ui/Garment'
 import { formatPrice } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
+import { api } from '../lib/api'
+import { openCheckout } from '../lib/razorpay'
 
 const STATES = [
   'Andhra Pradesh', 'Assam', 'Bihar', 'Chandigarh', 'Chhattisgarh', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh',
@@ -25,6 +27,22 @@ export default function CheckoutPage() {
   const { lines, count, subtotal, shipping, gstIncluded, total, clearCart } = useStore()
   const [form, setForm] = useState(initial)
   const [errors, setErrors] = useState({})
+  const [cfg, setCfg] = useState(null) // what the server can accept: { onlinePayments, cod }
+  const [placing, setPlacing] = useState(false)
+  const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    const ctrl = new AbortController()
+    api('/api/config', { signal: ctrl.signal })
+      .then((c) => {
+        setCfg(c)
+        // Without a payment gateway, only cash on delivery is offered
+        if (!c.onlinePayments) setForm((f) => ({ ...f, payment: 'cod' }))
+      })
+      .catch((e) => e.name !== 'AbortError' && setCfg({ onlinePayments: false, cod: true, offline: true }))
+    return () => ctrl.abort()
+  }, [])
+  const payments = PAYMENTS.filter((p) => (cfg?.onlinePayments ? true : p.id === 'cod'))
 
   const set = (e) => {
     const { name, value } = e.target
@@ -45,31 +63,64 @@ export default function CheckoutPage() {
     return Object.keys(er).length === 0
   }
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
+    if (placing) return
     if (!validate()) {
       document.querySelector('.tc-input.is-error, .tc-select.is-error')?.focus?.()
       return
     }
-    const order = {
-      number: `TC${Date.now().toString().slice(-8)}`,
-      placedAt: new Date().toISOString(),
-      customer: { name: `${form.firstName} ${form.lastName}`, email: form.email, phone: form.phone },
-      address: { line1: form.address, line2: form.apartment, city: form.city, state: form.state, pin: form.pin },
-      payment: form.payment,
-      items: lines.map((l) => ({ name: l.product.name, size: l.size, color: l.colorName, qty: l.qty, price: l.product.price })),
-      subtotal,
-      shipping,
-      total,
-    }
-    // TODO: send `order` to your backend / payment gateway (Razorpay, Cashfree, Stripe …)
+    setPlacing(true)
+    setFormError('')
     try {
-      localStorage.setItem('tc_last_order', JSON.stringify(order))
-    } catch {
-      /* ignore */
+      const res = await api('/api/shop-orders', {
+        method: 'POST',
+        json: {
+          payment: form.payment,
+          customer: {
+            name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            address: [form.address.trim(), form.apartment.trim(), form.state].filter(Boolean).join(', '),
+            city: form.city.trim(),
+            pincode: form.pin.trim(),
+            notes: '',
+          },
+          // Only ids, sizes, colours and quantities are sent. The server prices the bag itself.
+          items: lines.map((l) => ({ productId: l.productId, size: l.size, color: l.color, qty: l.qty })),
+        },
+      })
+
+      let payState = form.payment === 'cod' ? 'cod' : 'pending'
+      if (res.payment?.gatewayOrderId) {
+        // "completed" only means the customer finished; the server confirms payment via webhook
+        const outcome = await openCheckout(res.payment, { description: `Order ${res.orderId}` }).catch(() => 'dismissed')
+        payState = outcome === 'completed' ? 'completed' : 'pending'
+      }
+
+      const order = {
+        number: res.orderId,
+        placedAt: new Date().toISOString(),
+        customer: { name: `${form.firstName} ${form.lastName}`, email: form.email, phone: form.phone },
+        address: { line1: form.address, line2: form.apartment, city: form.city, state: form.state, pin: form.pin },
+        payment: form.payment,
+        payState,
+        items: lines.map((l) => ({ name: l.product.name, size: l.size, color: l.colorName, qty: l.qty, price: l.product.price })),
+        subtotal: res.subtotal, // server-verified amounts
+        shipping: res.shipping,
+        total: res.total,
+      }
+      try {
+        localStorage.setItem('tc_last_order', JSON.stringify(order))
+      } catch {
+        /* ignore */
+      }
+      clearCart()
+      navigate('/order-confirmation', { state: { order } })
+    } catch (err) {
+      setFormError(err.message)
+      setPlacing(false)
     }
-    clearCart()
-    navigate('/order-confirmation', { state: { order } })
   }
 
   const field = (name, label, props = {}) => (
@@ -135,9 +186,6 @@ export default function CheckoutPage() {
             <section className="tc-panel">
               <div className="tc-panel__head">
                 <h2>Contact</h2>
-                <p>
-                  Have an account? <Link to="/login" className="tc-link">Log in</Link>
-                </p>
               </div>
               <div className="tc-formgrid">
                 {field('email', 'Email address', { type: 'email', autoComplete: 'email', wide: true, placeholder: 'you@email.com' })}
@@ -178,7 +226,7 @@ export default function CheckoutPage() {
                 </p>
               </div>
               <div className="tc-pays" role="radiogroup" aria-label="Payment method">
-                {PAYMENTS.map((p) => (
+                {payments.map((p) => (
                   <label key={p.id} className={`tc-pay-opt ${form.payment === p.id ? 'is-on' : ''}`}>
                     <input type="radio" name="payment" value={p.id} checked={form.payment === p.id} onChange={set} />
                     <span className="tc-pay-opt__icon">
@@ -236,9 +284,10 @@ export default function CheckoutPage() {
                 <dd>{formatPrice(total)}</dd>
               </div>
             </dl>
-            <button type="submit" className="tc-btn tc-btn--primary tc-btn--block tc-btn--lg">
-              {form.payment === 'cod' ? 'Place order' : 'Pay & place order'} · {formatPrice(total)}
-           </button>
+            {formError && <p className="tc-error" role="alert">{formError}</p>}
+            <button type="submit" className="tc-btn tc-btn--primary tc-btn--block tc-btn--lg" disabled={placing || !cfg}>
+              {placing ? 'Placing your order…' : `${form.payment === 'cod' ? 'Place order' : 'Pay & place order'} · ${formatPrice(total)}`}
+            </button>
             <ul className="tc-summary__trust">
               <li> Dispatched in {SITE.policy.dispatchHours} hours</li>
               <li> {SITE.policy.returnDays}-day returns on stock items</li>

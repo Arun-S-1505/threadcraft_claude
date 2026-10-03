@@ -1,4 +1,4 @@
-import { SITE } from '../config/site'
+import { SITE } from '../config/site.js'
 
 /* ───────── Formatting ───────── */
 const nf = new Intl.NumberFormat(SITE.currency.locale, { maximumFractionDigits: 0 })

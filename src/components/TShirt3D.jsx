@@ -1,8 +1,10 @@
-import React, { useRef, useState, useMemo, useEffect, useCallback, Component } from 'react'
+import React, { useRef, useMemo, useEffect, Component } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, useGLTF, Decal, Center } from '@react-three/drei'
 import * as THREE from 'three'
-import { toOversized, makeOversizedGeometry } from './oversizedFit'
+import { makeOversizedGeometry } from './oversizedFit'
+import { drawTextCanvas } from './textRaster'
+import { getScaleXY, getPlacementTransform } from './decalTransform'
 
 /* ───────── Preload 3D Model ───────── */
 useGLTF.preload('/shirt_baked.glb')
@@ -33,113 +35,18 @@ class CanvasErrorBoundary extends Component {
 }
 
 /* ───────── Canvas Texture Generator for Text Decals ───────── */
-function createTextTexture(text, fontColor = '#FFFFFF', fontSize = 36, fontFamily = 'Geist') {
-  if (!text) return null
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 512
-  const ctx = canvas.getContext('2d')
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-  const fs = Math.max(32, Math.min(110, fontSize * 2.2))
-  ctx.font = `bold ${fs}px ${fontFamily}, Inter, sans-serif`
-  ctx.fillStyle = fontColor
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-
-  const maxWidth = canvas.width * 0.85
-  const words = text.split(' ')
-  const lines = []
-  let currentLine = ''
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word
-    if (ctx.measureText(testLine).width > maxWidth && currentLine) {
-      lines.push(currentLine)
-      currentLine = word
-    } else {
-      currentLine = testLine
-    }
-  }
-  if (currentLine) lines.push(currentLine)
-
-  const lineHeight = fs * 1.25
-  const totalHeight = lines.length * lineHeight
-  const startY = (canvas.height - totalHeight) / 2 + lineHeight / 2
-
-  lines.forEach((line, idx) => {
-    ctx.fillText(line, canvas.width / 2, startY + idx * lineHeight)
-  })
-
+function createTextTexture(text, fontColor, fontSize, fontFamily) {
+  const canvas = drawTextCanvas(text, fontColor, fontSize, fontFamily)
+  if (!canvas) return null
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
+  texture.anisotropy = 8
   texture.needsUpdate = true
   return texture
 }
 
-/* ───────── Helper to normalize scale {x, y} ───────── */
-function getScaleXY(scale) {
-  if (typeof scale === 'number') {
-    return { x: scale, y: scale }
-  }
-  if (scale && typeof scale === 'object') {
-    return { x: scale.x || 0.35, y: scale.y || 0.35 }
-  }
-  return { x: 0.35, y: 0.35 }
-}
-
-/* ───────── Calculate Decal Transform based on Placement ───────── */
-function getPlacementTransform(placement, pos, scale, fit = 'regular') {
-  const base = getBaseTransform(placement, pos, scale)
-  if (fit !== 'oversized') return base
-  // Same anchor point, moved through the oversized reshaping, with prints a little larger
-  const sleeve = placement === 'left_sleeve' || placement === 'right_sleeve'
-  const k = sleeve ? [1.1, 1.1, 1.1] : [1.2, 1.1, 1.1]
-  return {
-    position: toOversized(base.position),
-    rotation: base.rotation,
-    scale: [base.scale[0] * k[0], base.scale[1] * k[1], base.scale[2] * k[2]],
-  }
-}
-
-function getBaseTransform(placement, pos, scale) {
-  const p = placement || 'front'
-  const x = pos?.x || 0
-  const y = pos?.y || 0.04
-  const sX = scale.x * 1.25
-  const sY = scale.y * 1.25
-
-  switch (p) {
-    case 'back':
-      return {
-        position: [-x * 1.5, y * 1.5 - 0.02, -0.14],
-        rotation: [0, Math.PI, 0],
-        scale: [sX, sY, 0.15],
-      }
-    case 'left_sleeve':
-      return {
-        position: [-0.22 - y * 0.4, 0.08 + x * 0.4, 0.02],
-        rotation: [0, -Math.PI / 2, 0],
-        scale: [sX * 0.75, sY * 0.75, 0.15],
-      }
-    case 'right_sleeve':
-      return {
-        position: [0.22 + y * 0.4, 0.08 - x * 0.4, 0.02],
-        rotation: [0, Math.PI / 2, 0],
-        scale: [sX * 0.75, sY * 0.75, 0.15],
-      }
-    case 'front':
-    default:
-      return {
-        position: [x * 1.5, y * 1.5 - 0.02, 0.14],
-        rotation: [0, 0, 0],
-        scale: [sX, sY, 0.15],
-      }
-  }
-}
-
 /* ───────── Single Decal Renderer for a Design Item ───────── */
-function SingleDecal({ item, isActive, onSelect, fit }) {
+function SingleDecal({ item, onSelect, fit }) {
   const textTexture = useMemo(() => {
     if (item.type === 'text' && item.text) {
       return createTextTexture(item.text, item.textColor, item.textSize, item.textFont)
@@ -161,7 +68,8 @@ function SingleDecal({ item, isActive, onSelect, fit }) {
 
   const pos = item.pos || { x: 0, y: 0.04 }
   const scale = getScaleXY(item.scale)
-  const transform = getPlacementTransform(item.placement, pos, scale, fit)
+  // Saved orders carry the transform frozen at order time; live designs compute it from the sliders
+  const transform = item.resolved || getPlacementTransform(item.placement, pos, scale, fit)
 
   return (
     <Decal
@@ -221,7 +129,6 @@ function Model({ color, designList = [], activeDesignId, onSelectDesign, fit = '
           <SingleDecal
             key={item.id}
             item={item}
-            isActive={item.id === activeDesignId}
             onSelect={onSelectDesign}
             fit={fit}
           />
@@ -229,6 +136,44 @@ function Model({ color, designList = [], activeDesignId, onSelectDesign, fit = '
       </mesh>
     </group>
   )
+}
+
+/* ───────── Snapshot capture (frozen visual proof for orders) ───────── */
+const VIEW_AZIMUTH = { front: 0, back: Math.PI, left_sleeve: -Math.PI / 2, right_sleeve: Math.PI / 2 }
+
+const nextFrames = (n) => new Promise((resolve) => {
+  const tick = () => (--n <= 0 ? resolve() : requestAnimationFrame(tick))
+  requestAnimationFrame(tick)
+})
+
+/**
+ * Returns capture(views) -> { [view]: Blob }. Turns the orbit controls to each side, waits for the
+ * render loop to draw it, and reads the canvas (the canvas keeps its buffer: preserveDrawingBuffer).
+ */
+function makeCapture(controlsRef, wrapRef) {
+  return async (views) => {
+    const controls = controlsRef.current
+    const canvas = wrapRef.current?.querySelector('canvas')
+    if (!controls || !canvas) throw new Error('The 3D preview is not ready yet. Please try again.')
+    const restore = controls.getAzimuthalAngle()
+    const damping = controls.enableDamping
+    controls.enableDamping = false // snap straight to each angle instead of easing there
+    const out = {}
+    for (const view of views) {
+      controls.setAzimuthalAngle(VIEW_AZIMUTH[view] ?? 0)
+      controls.update()
+      await nextFrames(4)
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob((b) => (b ? resolve(b) : canvas.toBlob(resolve, 'image/png')), 'image/webp', 0.9)
+      })
+      if (!blob) throw new Error('Could not capture a preview of your design. Please try again.')
+      out[view] = blob
+    }
+    controls.setAzimuthalAngle(restore)
+    controls.update()
+    controls.enableDamping = damping
+    return out
+  }
 }
 
 /* ───────── Main 3D Studio Canvas ───────── */
@@ -239,8 +184,10 @@ export default function TShirt3D({
   onSelectDesign,
   viewAngle = 'front',
   fit = 'regular',
+  onCaptureReady,
 }) {
   const controlsRef = useRef()
+  const wrapRef = useRef(null)
 
   // Smoothly rotate camera view when viewAngle changes
   useEffect(() => {
@@ -256,14 +203,19 @@ export default function TShirt3D({
     controls.update()
   }, [viewAngle])
 
+  useEffect(() => {
+    onCaptureReady?.(makeCapture(controlsRef, wrapRef))
+    return () => onCaptureReady?.(null)
+  }, [onCaptureReady])
+
   return (
     <CanvasErrorBoundary>
-      <div className="w-full h-full relative">
+      <div className="w-full h-full relative" ref={wrapRef}>
         <Canvas
           shadows={false}
           dpr={[1, 1.5]}
-          gl={{ antialias: true, powerPreference: 'high-performance' }}
-          camera={{ position: [0, 0, 10], fov: 35, near: 0.1, far: 1000 }}
+          gl={{ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
+          camera={{ position: [0, 0, 15], fov: 35, near: 0.1, far: 1000 }}
           style={{ background: 'transparent' }}
         >
           <ambientLight intensity={0.9} />

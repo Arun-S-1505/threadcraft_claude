@@ -115,3 +115,24 @@
   .sx__foot dl > div:not(.sx__total) { display: none; }
   .sx__total { padding-top: 0; margin-top: 0; border-top: 0; }
 }
+
+/* Submit order */
+.sx__submit { margin-top: 14px; }
+.tc-order { max-height: calc(100vh - 40px); overflow-y: auto; }
+.tc-order__sum { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+.tc-order__warn { margin-bottom: 18px; padding: 12px 14px; background: var(--paper-2); border-left: 2px solid var(--ink); font-size: 13.5px; }
+.tc-order .tc-formgrid { gap: 14px; }
+.tc-order__total { margin: 20px 0 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.tc-order__total > div { display: flex; justify-content: space-between; font-size: 15px; }
+.tc-order__total p { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+.tc-order__done p { margin-bottom: 14px; color: var(--muted); font-size: 14.5px; }
+.tc-order__done strong { color: var(--ink); }
+.tc-order__note { font-size: 13px !important; }
+@media (max-width: 960px) { .sx__foot .sx__submit { margin-top: 10px; } .sx__foot dl > div.sx__total { margin-bottom: 0; } }
+
+/* Phones: keep all four view buttons visible without scrolling */
+@media (max-width: 480px) {
+  .sx__views { top: 12px; max-width: calc(100% - 16px); }
+  .sx__views button { padding: 10px 9px; font-size: 11px; letter-spacing: 0.02em; }
+  .tc-order.tc-modal__card, .tc-order { padding: 22px 18px; }
+}

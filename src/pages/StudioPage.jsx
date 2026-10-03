@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import TShirt3D from '../components/TShirt3D'
 import Navbar from '../components/Navbar'
 import Icon from '../components/ui/Icon'
+import OrderDialog from '../components/OrderDialog'
 import { formatPrice } from '../data/products'
+import { BASE_PRICES, FIT_PRICE, printFee, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS } from '../../shared/designSpec'
 
 /* ───────── Data ───────── */
 const colorOptions = [
@@ -34,13 +36,6 @@ const placementOptions = [
   { label: 'Right Sleeve', value: 'right_sleeve', icon: 'arrow_forward' },
 ]
 
-/* ───────── Pricing ───────── */
-// Prices in INR (placeholders: adjust to your real pricing)
-const BASE_PRICES = { dtg: 899, screen: 799, embroidery: 1199 }
-const PRINT_FEES = { dtg: 199, screen: 149, embroidery: 299 }
-const EXTRA_ITEM_FEE = 99
-const FIT_PRICE = { regular: 0, oversized: 200 } // oversized uses the heavier 240 GSM fabric
-
 /* ───────── Maximum Sublimation Bounds ───────── */
 const MAX_SUBLIMATION = 0.55
 
@@ -67,6 +62,7 @@ const Slider = ({ label, value, shown, min, max, onChange }) => (
 
 /* ───────── Component ───────── */
 export default function StudioPage() {
+  useEffect(() => { document.title = 'Custom studio | ThreadCraft' }, [])
   // Tool state
   const [activeTab, setActiveTab] = useState('select')
 
@@ -93,6 +89,12 @@ export default function StudioPage() {
   const [designList, setDesignList] = useState([])
   const [activeDesignId, setActiveDesignId] = useState(null)
 
+  // Order flow
+  const [orderOpen, setOrderOpen] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const captureRef = useRef(null)
+  const handleCaptureReady = useCallback((fn) => { captureRef.current = fn }, [])
+
   // Refs
   const fileInputRef = useRef(null)
 
@@ -100,11 +102,8 @@ export default function StudioPage() {
   const basePrice = BASE_PRICES[printType] + FIT_PRICE[fit]
   const fitInfo = fitOptions.find((f) => f.value === fit)
   const hasDesign = designList.length > 0
-  const totalPrice = basePrice + (hasDesign ? printFeeForCount(designList.length, printType) : 0)
-
-  function printFeeForCount(count, type) {
-    return PRINT_FEES[type] + Math.max(0, count - 1) * EXTRA_ITEM_FEE
-  }
+  const printFeeTotal = printFee(designList.length, printType)
+  const totalPrice = unitPrice({ fit, printType, itemCount: designList.length })
 
   // ─── Select View & Placement ───
   const handleViewAngleSwitch = (angle) => {
@@ -149,24 +148,41 @@ export default function StudioPage() {
   // ─── Add Image Graphic Design Item ───
   const handleFileUpload = (e) => {
     const file = e.target.files[0]
+    e.target.value = ''
     if (!file) return
+    setUploadError('')
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) return setUploadError('Use a PNG, JPG, WebP or SVG file.')
+    if (file.size > MAX_UPLOAD_BYTES) return setUploadError(`That file is too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`)
+    if (designList.length >= MAX_ITEMS) return setUploadError(`You can add up to ${MAX_ITEMS} designs.`)
     const reader = new FileReader()
     reader.onload = (ev) => {
-      const newId = 'des_img_' + Date.now()
-      const newItem = {
-        id: newId,
-        type: 'image',
-        image: ev.target.result,
-        name: file.name,
-        placement: currentPlacement,
-        pos: { x: 0, y: 0.04 },
-        scale: { x: 0.35, y: 0.35 },
-        isFixed: false,
-        visible: true,
+      const dataUrl = ev.target.result
+      // Read pixel size so we can warn about low-resolution artwork (SVG is scalable, so skipped)
+      const probe = new Image()
+      probe.onload = () => {
+        const isSvg = file.type === 'image/svg+xml'
+        const newId = 'des_img_' + Date.now()
+        const newItem = {
+          id: newId,
+          type: 'image',
+          image: dataUrl,
+          file, // original bytes, uploaded untouched at order time
+          mime: file.type,
+          name: file.name,
+          width: isSvg ? null : probe.naturalWidth,
+          height: isSvg ? null : probe.naturalHeight,
+          placement: currentPlacement,
+          pos: { x: 0, y: 0.04 },
+          scale: { x: 0.35, y: 0.35 },
+          isFixed: false,
+          visible: true,
+        }
+        setDesignList(prev => [...prev, newItem])
+        setActiveDesignId(newId)
+        setActiveTab('select')
       }
-      setDesignList(prev => [...prev, newItem])
-      setActiveDesignId(newId)
-      setActiveTab('select')
+      probe.onerror = () => setUploadError('That image could not be read. Try another file.')
+      probe.src = dataUrl
     }
     reader.readAsDataURL(file)
   }
@@ -279,15 +295,6 @@ export default function StudioPage() {
   const activePosX = activeItem ? activeItem.pos?.x || 0 : 0
   const activePosY = activeItem ? activeItem.pos?.y || 0.04 : 0.04
 
-  /* ─── Side toolbar tabs ─── */
-  const sideTools = [
-    { icon: 'near_me', label: 'Select', tab: 'select' },
-    { icon: 'title', label: 'Text', tab: 'text' },
-    { icon: 'category', label: 'Graphics', tab: 'graphics' },
-    { icon: 'texture', label: 'Textures', tab: 'textures' },
-    { icon: 'layers', label: 'Layers', tab: 'layers' },
-  ]
-
   const placementLabel = (v) => placementOptions.find((p) => p.value === v)?.label
   const selectFromCanvas = (id) => {
     handleSelectDesign(id)
@@ -321,7 +328,7 @@ export default function StudioPage() {
             ))}
           </div>
           <div className="sx__canvas">
-            <TShirt3D color={selectedColor.hex} designList={designList} activeDesignId={activeDesignId} onSelectDesign={selectFromCanvas} viewAngle={viewAngle} fit={fit} />
+            <TShirt3D color={selectedColor.hex} designList={designList} activeDesignId={activeDesignId} onSelectDesign={selectFromCanvas} viewAngle={viewAngle} fit={fit} onCaptureReady={handleCaptureReady} />
           </div>
         </section>
 
@@ -486,12 +493,13 @@ export default function StudioPage() {
                     <div className="sx__label"><label>Place on</label></div>
                     <PlacementPicker value={currentPlacement} onPick={handleViewAngleSwitch} />
                   </div>
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="sx__file" aria-label="Upload image" />
+                  <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={handleFileUpload} className="sx__file" aria-label="Upload image" />
                   <button type="button" className="sx__drop" onClick={() => fileInputRef.current?.click()}>
                     <Icon name="upload" size={22} />
                     <span>Upload an image</span>
-                    <small>PNG with a transparent background works best. Placing on {placementLabel(currentPlacement)?.toLowerCase()}.</small>
+                    <small>PNG with a transparent background works best, at least 1000 px on the longest side. Max 8 MB. Placing on {placementLabel(currentPlacement)?.toLowerCase()}.</small>
                   </button>
+                  {uploadError && <p className="tc-error" role="alert">{uploadError}</p>}
                 </div>
               )}
 
@@ -540,15 +548,26 @@ export default function StudioPage() {
           <footer className="sx__foot">
             <dl>
               <div><dt>{fitInfo.label} tee ({selectedSize})</dt><dd>{formatPrice(basePrice)}</dd></div>
-              <div><dt>Print ({designList.length} {designList.length === 1 ? 'item' : 'items'})</dt><dd>{hasDesign ? formatPrice(printFeeForCount(designList.length, printType)) : '—'}</dd></div>
+              <div><dt>Print ({designList.length} {designList.length === 1 ? 'item' : 'items'})</dt><dd>{hasDesign ? formatPrice(printFeeTotal) : '—'}</dd></div>
               <div className="sx__total"><dt>Total</dt><dd>{formatPrice(totalPrice)}</dd></div>
             </dl>
+            <button type="button" className="tc-btn tc-btn--primary tc-btn--block sx__submit" disabled={!hasDesign} onClick={() => setOrderOpen(true)}>
+              {hasDesign ? 'Submit order' : 'Add a design to order'}
+            </button>
             <p>
-              Ready to order? <Link to="/contact" className="tc-link">Send us your design</Link> or see <Link to="/bulk-orders" className="tc-link">bulk orders</Link>.
+              Ordering 20 or more? See <Link to="/bulk-orders" className="tc-link">bulk orders</Link>.
             </p>
           </footer>
         </aside>
       </div>
+
+      {orderOpen && (
+        <OrderDialog
+          order={{ fit, colour: selectedColor, size: selectedSize, printType, designList }}
+          getCapture={() => captureRef.current}
+          onClose={() => setOrderOpen(false)}
+        />
+      )}
     </div>
   )
 }

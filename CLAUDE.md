@@ -1,0 +1,92 @@
+# ThreadCraft storefront (threadcraft-react)
+
+Clothing brand: own designs sold as "Collection", plus a custom-print service (Design Studio) and bulk orders.
+Goal: a professional, minimalist, elegant storefront that looks legitimate to buyers. Keep working logic intact; design is free to change.
+Owner: ThreadCraft (threadcraftcustomwear@gmail.com). Expected volume: about 50-100 orders a month, so everything must run on free tiers.
+
+## Stack (current)
+- Vite + React 19, react-router-dom 7 (SPA)
+- 3D studio: three, @react-three/fiber, @react-three/drei. Model: `public/shirt_baked.glb` (single mesh node `T_Shirt_male`)
+- Hand-written CSS with `tc-` prefix in `src/styles/` (base, chrome, shop, home, pages, studio), all imported via `brand.css`. Studio uses `sx` / `sx__*` / `sx-seg` / `sx-slider` classes.
+- Legacy Tailwind CDN config in `index.html` (re-toned to neutral tokens)
+- Backend code exists in `worker/` (Hono on Workers, D1, R2) but is NOT deployed. The storefront calls relative `/api/*` (Vite proxies it to `localhost:8787` in dev). Cart/wishlist live in localStorage (StoreContext). There are no customer accounts.
+
+## Target architecture (decided): all on Cloudflare free tier
+- Frontend: Cloudflare Pages (this Vite app, build `npm run build`, output `dist`). Add a `_redirects` / SPA fallback so client routes work.
+- Backend: Cloudflare Workers, written with Hono (Express-like, runs on Workers). Do not use Express directly.
+- Database: Cloudflare D1 (SQLite) for orders, design specs, statuses.
+- Files: Cloudflare R2, PRIVATE bucket, for customer uploads and order preview images. No public access; the admin sees files through short-lived signed URLs or an authenticated Worker route.
+- Admin: `/admin` area inside this same React app, protected by Cloudflare Access (free for small teams) AND by server-side checks in the Worker. Hiding a route in React is not security; every admin API route must verify the caller.
+- Email (order notification to owner, confirmation to customer): a small email service with a free tier (e.g. Resend) called from a Worker.
+- Payments: a hosted-checkout gateway (Razorpay suggested for India; owner must create and get approved for a merchant account first). Never store card data. Store only the gateway payment id + status. Confirm payment only through the gateway's signed webhook handled in a Worker.
+- Free limits to keep in mind (verify current numbers on Cloudflare pricing): Workers about 100k requests/day and few ms CPU per request, so do no heavy image processing in Workers; R2 about 10 GB free. Keep upload cap at 5-10 MB and accept only PNG/JPG/WebP/SVG. Treat SVG as untrusted (show only as an image, never inline).
+- Suggested repo layout: keep the React app at root; add `worker/` (Hono app, `wrangler.toml`, `schema.sql`) and a shared `shared/designSpec.js` for the design-spec schema and validation used by both sides.
+
+## Design rules
+- Minimal and calm: neutral palette (CSS variables in base.css), few animations, only essential icons (search, wishlist, account, bag, menu).
+- Spacing around horizontal rules is intentionally tight (`.tc-pagehead`, `.tc-section`). Do not re-loosen.
+- The animated announcement strip (`.tc-ann`, from `SITE.announcements`) shows above the navbar on every page, including /studio, via `<Navbar announcement />`.
+- Mobile navbar keeps search, account and bag icons visible (wishlist hidden under 560px, reachable from the account menu).
+
+## Routes (src/App.jsx)
+Storefront pages sit inside `Layout`: home, shop, collections, product, cart, checkout, order-confirmation, wishlist, contact, policies, /bulk-orders, /sustainability (shown as "Our Craft"), /track-order (real lookup by order number + email).
+Old account URLs (/login, /signup, /orders, /account*) redirect to /track-order: the fake login pages were removed on purpose.
+`/studio` is standalone (own navbar, no footer). `/admin` is the owner area (`AdminPage.jsx`, no Layout, noindex).
+
+## Business config
+- `src/config/site.js`: site name, contact, nav links, announcements, policy (dispatch hours, `gsmRegular: 180`, `gsmOversized: 240`).
+- Regular fit tee = 180 GSM, oversized tee = 240 GSM. Keep copy consistent everywhere.
+- All prices are INR placeholders. Studio prices are in `src/pages/StudioPage.jsx`: BASE_PRICES {dtg 899, screen 799, embroidery 1199}, PRINT_FEES {199, 149, 299}, EXTRA_ITEM_FEE 99, FIT_PRICE {regular 0, oversized 200}. Replace with real prices. When orders go live, the Worker must recompute the price server-side from the design spec; never trust a total sent by the browser.
+
+## Design Studio (src/pages/StudioPage.jsx + src/components/TShirt3D.jsx)
+- UI fully redesigned; logic preserved. Design items (`designList`) have: id, type ('text'|'image'), text, textColor, textSize, textFont, image (data URL), placement (front/back/left_sleeve/right_sleeve), pos {x,y}, scale {x,y}. Also state: shirt colour, fit (regular/oversized), print type, view angle.
+- Decal position maths: `getBaseTransform` / `getPlacementTransform` in TShirt3D.jsx. Oversized goes through `toOversized()` in `src/components/oversizedFit.js` (OVERSIZED: width 1.32, depth 1.1, drop 0.06, length 0.09, boxy 0.06) and print scale is bumped slightly. `key={fit}` forces remount.
+- Oversized has no separate 3D asset; it is the regular mesh deformed procedurally.
+- `PlacementPicker` and `Slider` are at module scope on purpose (inside the component they remount every render and break slider dragging).
+- The Studio currently has a "send us your design" link to the contact page; the owner wants it REPLACED (see task 2).
+
+## Workflow of the whole project (customer to owner)
+1. Customer browses the storefront: Shop / Collections / Product pages, wishlist, cart drawer (all static data from `src/data/products.js`).
+2. Custom prints: customer opens `/studio`, picks fit (regular 180 GSM / oversized 240 GSM), colour, print type; adds text and/or images; positions and scales them on the 3D shirt (front, back, sleeves); sees the live price.
+3. Customer presses "Submit order" (to be built). Browser: validates, builds the design spec, captures preview images, uploads original image files, sends the order to the Worker.
+4. Worker: validates the spec and files, recomputes price, stores files in R2 and the order row in D1, emails the owner, creates the payment (once payments exist), returns an order id.
+5. Customer pays through the gateway's hosted checkout; the webhook marks the order paid.
+6. Owner opens `/admin`, sees new orders, opens one (preview snapshot, live read-only 3D rebuild from the saved spec, original file downloads, customer and shipping details), prints, updates status (new, paid, printing, shipped, delivered) with a tracking number.
+7. Customer can look up status on /track-order (and /orders if accounts exist).
+Bulk orders and contact forms follow the same pattern: form to Worker to D1 + owner email.
+
+## Design-spec storage rules (strict: the design must never change after the customer places it)
+Store three separate things per custom order:
+1. Design spec JSON (about 1-2 KB, source of truth): `schemaVersion`, shirt model + fit, shirt colour, print type, and per item: type, placement, pos x/y, scale x/y, text/colour/size/font for text items, image file id + sha256 for image items. ALSO store the resolved final transform per item (position, rotation, scale in model space) computed at order time, plus a model/fit version, so future changes to the placement maths cannot shift old orders.
+2. Original uploaded images in private R2, byte-for-byte as received (no resize, no recompress; lossless only if a conversion is unavoidable). Reference by file id; record sha256; dedupe by hash.
+3. Preview snapshots (WebP/PNG, about 100-300 KB): 3D capture at order time, front and back if printed. This is the frozen visual proof.
+Text items: bundle the font files in the site, and also rasterise each text item to a transparent PNG/SVG at order time so it can never re-render differently.
+Do not put base64 images in the database. Warn the customer in the browser if an image is small (under about 1000 px longest side) because it will print blurry.
+Admin view should rebuild the 3D shirt read-only from the saved spec (reuse `TShirt3D`) and show the snapshot beside it.
+
+## Status of the plan
+All code for the plan is written and tested locally. What is left needs the owner's accounts or real content.
+
+**Done and verified in a real browser against the local API:** Oversized fit (3D), studio Submit order (text + image uploads, previews, payment step), shop checkout (cash on delivery path), contact + bulk forms, track-order, admin list/detail with 3D rebuild, downloads, status updates.
+**Done and covered by `worker/test/smoke.mjs` (46 checks, run `npm run smoke` in worker/):** order validation, server-side pricing, file sniffing/SVG rejection, tracking, admin auth (403 cases), webhook signature + amount check + idempotency, Razorpay order creation (mocked gateway), messages, backup.
+
+### How things work
+- `shared/designSpec.js`: pricing, spec builder, validators, used by the browser AND the Worker. `worker/src/catalog.js` prices shop carts from `src/data/products.js` + `src/config/site.js`, so the displayed price is the charged price.
+- `src/lib/orders.js` (studio order), `src/lib/api.js` (fetch wrapper), `src/lib/razorpay.js` (hosted checkout loader). Payment is only ever confirmed by the signed webhook, never by the browser.
+- Studio preview capture: `makeCapture` in `TShirt3D.jsx` turns the OrbitControls (damping off) to each printed side and reads the canvas. Saved orders render from the stored transform (`item.resolved`), text from its stored PNG.
+- Payment modes: shop = cash on delivery always, UPI/card only if the gateway is configured (`GET /api/config`). Custom orders = online if configured, else "we will send a payment request" (`invoice`).
+- Worker routes: `/api/orders`, `/api/shop-orders`, `/api/pay`, `/api/config`, `/api/track`, `/api/contact`, `/api/bulk`, `/api/webhooks/razorpay`, `/api/admin/*` (Access + allow-list). Monthly cron backs up to R2.
+- **`wrangler dev` cannot run on the owner's PC** (Windows Application Control blocks `workerd.exe`; do not try to bypass it). Local full-stack dev: `cd worker && npm run dev:node` (in-memory data, acts as admin) plus `npm run dev`.
+- Dev-browser quirk: the preview pane throttles rendering until it is painted. Take a screenshot before scripting the 3D studio, or the OrbitControls ref stays null.
+
+## Remaining work (needs the owner)
+1. **Deploy** following `DEPLOY.md` (Cloudflare login needed: D1, R2, Pages, Access, secrets, domain). Nothing has run on real workerd yet; do a full test pass after the first deploy.
+2. **Razorpay**: merchant account + test keys, webhook URL, then live keys. The browser side of the gateway (opening checkout) has not been run against Razorpay itself, only the API side with a mock.
+3. **Resend**: verified sending domain + API key (emails are skipped with a log line until then).
+4. **Real content**: prices (`products.js`, `designSpec.js`), product photos (still procedural SVG `components/ui/Garment`), real contact/social in `site.js`, absolute `og:image` and a sitemap once the domain exists, real policy review.
+5. **Nice to have**: studio "Add to bag" (custom designs are ordered directly, not through the cart), customer accounts (intentionally not built), replacing the Tailwind CDN script in `index.html` with a build-time setup, an admin screen for refunds.
+
+## Known limits / cautions
+- Free tiers: verify current limits on each pricing page before relying on them. Supabase was considered and NOT chosen.
+- Never put secrets or API keys in the React code; everything in the browser is public.
+- Never accept a price, payment status or admin role from the browser.

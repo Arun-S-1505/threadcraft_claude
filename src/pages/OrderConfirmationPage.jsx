@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import Icon from '../components/ui/Icon'
 import { formatPrice } from '../data/products'
 import { SITE } from '../config/site'
 
@@ -52,12 +51,14 @@ export default function OrderConfirmationPage() {
               <path d="M15 27l8 8 15-17" />
             </svg>
           </span>
-          <p className="tc-eyebrow">Order confirmed</p>
+          <p className="tc-eyebrow">{order.payState === 'pending' ? 'Order received' : 'Order confirmed'}</p>
           <h1 className="tc-h2 tc-h2--page">
             Thank you, <em>{order.customer.name.split(' ')[0]}.</em>
           </h1>
           <p className="tc-lead">
-            Your order is in and our print team has been notified. We'll dispatch it within {SITE.policy.dispatchHours} hours and send tracking details to {order.customer.email}.
+            {order.payState === 'pending'
+              ? `Your order is saved but payment is not complete yet. Finish it from Track Order with your order number and email (${order.customer.email}).`
+              : `Your order is in and our team has been notified. We'll dispatch it within ${SITE.policy.dispatchHours} hours and send tracking details to ${order.customer.email}.`}
           </p>
         </div>
 

@@ -95,3 +95,13 @@
 .tc-contact--merged { padding-block: clamp(20px, 2.4vw, 28px) clamp(28px, 4vw, 48px); align-items: center; }
 .tc-craft__intro { padding-block: clamp(20px, 2.4vw, 28px) clamp(28px, 4vw, 48px); }
 @media (max-width: 900px) { .tc-craft__intro .tc-studio__art { order: 0; max-width: 360px; } }
+
+/* Track order (real lookup) */
+.tc-trackpage { padding-bottom: 72px; }
+.tc-trackpage__form { max-width: 640px; margin-bottom: 40px; }
+.tc-trackpage__result { max-width: 640px; }
+.tc-trackpage__pay { margin-top: 24px; display: grid; gap: 12px; justify-items: start; }
+.tc-trackpage .tc-note { margin-top: 18px; }
+
+/* Spam honeypot field: invisible to people */
+.tc-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }

@@ -3,19 +3,27 @@ import { Link, useParams } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import { SITE } from '../config/site'
 import { formatPrice } from '../data/products'
+import { api } from '../lib/api'
 
 /* ───────── Contact ───────── */
 export function ContactPage() {
-  const [form, setForm] = useState({ name: '', email: '', topic: 'Custom order', message: '' })
-  const [sent, setSent] = useState(false)
+  const [form, setForm] = useState({ name: '', email: '', topic: 'Custom order', message: '', website: '' })
+  const [status, setStatus] = useState('idle') // idle | sending | sent
+  const [error, setError] = useState('')
   const set = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    // No backend yet: open the visitor's mail app with the message pre-filled.
-    const body = `${form.message}\n\n— ${form.name} (${form.email})`
-    window.location.href = `mailto:${SITE.contact.email}?subject=${encodeURIComponent(`[${form.topic}] Website enquiry`)}&body=${encodeURIComponent(body)}`
-    setSent(true)
+    setStatus('sending')
+    setError('')
+    try {
+      await api('/api/contact', { method: 'POST', json: { name: form.name, email: form.email, subject: form.topic, message: form.message, website: form.website } })
+      setStatus('sent')
+      setForm({ name: '', email: '', topic: 'Custom order', message: '', website: '' })
+    } catch (err) {
+      setError(err.message)
+      setStatus('idle')
+    }
   }
 
   const channels = [
@@ -74,10 +82,13 @@ export function ContactPage() {
               <textarea id="c-msg" name="message" rows="6" className="tc-input" value={form.message} onChange={set} required />
             </div>
           </div>
-          <button type="submit" className="tc-btn tc-btn--primary">
-            Send message 
-         </button>
-          {sent && <p className="tc-note">Your email app should have opened with the message ready to send.</p>}
+          {/* Honeypot: hidden from people, bots fill it in */}
+          <input name="website" value={form.website} onChange={set} className="tc-hp" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+          <button type="submit" className="tc-btn tc-btn--primary" disabled={status === 'sending'}>
+            {status === 'sending' ? 'Sending…' : 'Send message'}
+          </button>
+          {status === 'sent' && <p className="tc-note" role="status">Thank you. We have your message and will reply by email.</p>}
+          {error && <p className="tc-error" role="alert">{error}</p>}
         </form>
       </div>
     </div>
@@ -93,7 +104,7 @@ const POLICIES = {
       ['Dispatch time', `Orders are printed and dispatched within ${SITE.policy.dispatchHours} hours of confirmation. Bulk and corporate orders are scheduled with you in advance.`],
       ['Shipping charges', `Shipping is free on orders above ${formatPrice(SITE.policy.freeShippingThreshold)}. Below that, a flat fee of ${formatPrice(SITE.policy.shippingFee)} applies.`],
       ['Delivery time', 'Delivery typically takes a few working days after dispatch depending on your location. You will receive tracking details by email once your order ships.'],
-      ['Cash on delivery', 'Cash on delivery is available on eligible pin codes. Eligibility is shown at checkout.'],
+      ['Cash on delivery', 'Cash on delivery is available for items from the shop. Custom studio orders are paid in advance.'],
     ],
   },
   returns: {
@@ -112,7 +123,7 @@ const POLICIES = {
     sections: [
       ['What we collect', 'Contact details, delivery address and order information you provide at checkout, and any artwork you upload to the studio.'],
       ['How we use it', 'To process and deliver your order, provide support, and, if you opt in, send you news about new drops. We do not sell your personal information.'],
-      ['Your artwork', 'Artwork you upload is used only to produce your order. Please only upload designs you own or have permission to print.'],
+      ['Your artwork', 'Artwork you upload is stored privately and used only to produce your order. It is not public and not shared. We keep the original file and a preview of your design with the order so it can be reprinted exactly, and delete it on request. Please only upload designs you own or have permission to print.'],
       ['Your choices', `You can ask us to access, correct or delete your information at any time by emailing ${SITE.contact.email}.`],
     ],
   },
