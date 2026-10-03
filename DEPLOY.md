@@ -17,6 +17,13 @@ Nothing here has been run yet. Check each free-tier limit on Cloudflare's pricin
 The storefront calls **relative** `/api/...`. So the Worker must be served on the **same domain** as the site
 (a Worker route `yourdomain.com/api/*`). That also makes the Access login cookie work for the admin screens.
 
+## 0b. Domain (name.com with the GitHub Student Pack)
+1. Claim the free domain from the Student Pack offer page, then register it on name.com. Check which extensions the offer includes and when it renews (usually free for 1 year, then the normal price).
+2. In Cloudflare: Add a site, choose the free plan, enter the domain. Cloudflare shows two nameservers.
+3. In name.com: Domain, Nameservers, replace the defaults with Cloudflare's two. This can take from minutes to a few hours.
+4. When Cloudflare says the site is Active, the domain can be used for Pages, the Worker route, Access, and the Resend DNS records (Resend shows 3 to 4 records to paste into Cloudflare DNS).
+5. Razorpay: in the dashboard add the live site under website/app details so live payments are allowed from it. Test keys work without this.
+
 ## 1. One-time setup (in `worker/`)
 ```bash
 npm install

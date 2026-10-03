@@ -8,7 +8,7 @@ Owner: ThreadCraft (threadcraftcustomwear@gmail.com). Expected volume: about 50-
 - Vite + React 19, react-router-dom 7 (SPA)
 - 3D studio: three, @react-three/fiber, @react-three/drei. Model: `public/shirt_baked.glb` (single mesh node `T_Shirt_male`)
 - Hand-written CSS with `tc-` prefix in `src/styles/` (base, chrome, shop, home, pages, studio), all imported via `brand.css`. Studio uses `sx` / `sx__*` / `sx-seg` / `sx-slider` classes.
-- Legacy Tailwind CDN config in `index.html` (re-toned to neutral tokens)
+- Tailwind was removed (the CDN script is gone); `base.css` has its own reset. Do not add Tailwind classes.
 - Backend code exists in `worker/` (Hono on Workers, D1, R2) but is NOT deployed. The storefront calls relative `/api/*` (Vite proxies it to `localhost:8787` in dev). Cart/wishlist live in localStorage (StoreContext). There are no customer accounts.
 
 ## Target architecture (decided): all on Cloudflare free tier
@@ -43,16 +43,16 @@ Old account URLs (/login, /signup, /orders, /account*) redirect to /track-order:
 - Decal position maths: `getBaseTransform` / `getPlacementTransform` in TShirt3D.jsx. Oversized goes through `toOversized()` in `src/components/oversizedFit.js` (OVERSIZED: width 1.32, depth 1.1, drop 0.06, length 0.09, boxy 0.06) and print scale is bumped slightly. `key={fit}` forces remount.
 - Oversized has no separate 3D asset; it is the regular mesh deformed procedurally.
 - `PlacementPicker` and `Slider` are at module scope on purpose (inside the component they remount every render and break slider dragging).
-- The Studio currently has a "send us your design" link to the contact page; the owner wants it REPLACED (see task 2).
+- The studio's "send us your design" link was replaced by a real Submit order flow (`OrderDialog.jsx`).
 
 ## Workflow of the whole project (customer to owner)
 1. Customer browses the storefront: Shop / Collections / Product pages, wishlist, cart drawer (all static data from `src/data/products.js`).
 2. Custom prints: customer opens `/studio`, picks fit (regular 180 GSM / oversized 240 GSM), colour, print type; adds text and/or images; positions and scales them on the 3D shirt (front, back, sleeves); sees the live price.
-3. Customer presses "Submit order" (to be built). Browser: validates, builds the design spec, captures preview images, uploads original image files, sends the order to the Worker.
-4. Worker: validates the spec and files, recomputes price, stores files in R2 and the order row in D1, emails the owner, creates the payment (once payments exist), returns an order id.
+3. Customer presses "Submit order". Browser: validates, builds the design spec, captures preview images, uploads original image files, sends the order to the Worker.
+4. Worker: validates the spec and files, recomputes price, stores files in R2 and the order row in D1, emails the owner, creates the Razorpay order when the gateway is configured, returns an order id.
 5. Customer pays through the gateway's hosted checkout; the webhook marks the order paid.
 6. Owner opens `/admin`, sees new orders, opens one (preview snapshot, live read-only 3D rebuild from the saved spec, original file downloads, customer and shipping details), prints, updates status (new, paid, printing, shipped, delivered) with a tracking number.
-7. Customer can look up status on /track-order (and /orders if accounts exist).
+7. Customer looks up status on /track-order with order number + email (there are no accounts).
 Bulk orders and contact forms follow the same pattern: form to Worker to D1 + owner email.
 
 ## Design-spec storage rules (strict: the design must never change after the customer places it)
@@ -67,8 +67,8 @@ Admin view should rebuild the 3D shirt read-only from the saved spec (reuse `TSh
 ## Status of the plan
 All code for the plan is written and tested locally. What is left needs the owner's accounts or real content.
 
-**Done and verified in a real browser against the local API:** Oversized fit (3D), studio Submit order (text + image uploads, previews, payment step), shop checkout (cash on delivery path), contact + bulk forms, track-order, admin list/detail with 3D rebuild, downloads, status updates.
-**Done and covered by `worker/test/smoke.mjs` (46 checks, run `npm run smoke` in worker/):** order validation, server-side pricing, file sniffing/SVG rejection, tracking, admin auth (403 cases), webhook signature + amount check + idempotency, Razorpay order creation (mocked gateway), messages, backup.
+**Done and verified in a real browser against the local API:** Oversized fit (3D), studio Submit order (text + image uploads, previews, payment step), shop checkout (cash on delivery path), contact + bulk forms, track-order, admin list/detail with 3D rebuild, downloads, status + tracking updates, messages, backup, erase customer data.
+**Done and covered by `worker/test/smoke.mjs` (53 checks, run `npm run smoke` in worker/):** order validation, server-side pricing, file sniffing/SVG rejection, tracking, admin auth (403 cases), webhook signature + amount check + idempotency, Razorpay order creation (mocked gateway), messages, backup.
 
 ### How things work
 - `shared/designSpec.js`: pricing, spec builder, validators, used by the browser AND the Worker. `worker/src/catalog.js` prices shop carts from `src/data/products.js` + `src/config/site.js`, so the displayed price is the charged price.
@@ -84,7 +84,11 @@ All code for the plan is written and tested locally. What is left needs the owne
 2. **Razorpay**: merchant account + test keys, webhook URL, then live keys. The browser side of the gateway (opening checkout) has not been run against Razorpay itself, only the API side with a mock.
 3. **Resend**: verified sending domain + API key (emails are skipped with a log line until then).
 4. **Real content**: prices (`products.js`, `designSpec.js`), product photos (still procedural SVG `components/ui/Garment`), real contact/social in `site.js`, absolute `og:image` and a sitemap once the domain exists, real policy review.
-5. **Nice to have**: studio "Add to bag" (custom designs are ordered directly, not through the cart), customer accounts (intentionally not built), replacing the Tailwind CDN script in `index.html` with a build-time setup, an admin screen for refunds.
+5. **Nice to have**: studio "Add to bag" (custom designs are ordered directly, not through the cart), customer accounts (intentionally not built), an admin screen for refunds (refunds are done in the Razorpay dashboard for now).
+
+### Owner facts (from the owner)
+- Domain: to be bought on name.com with the GitHub Student Developer Pack (any TLD the offer allows). Put DNS on Cloudflare (change nameservers at name.com).
+- Resend account exists; only domain verification is left. Razorpay account is already activated for live payments.
 
 ## Known limits / cautions
 - Free tiers: verify current limits on each pricing page before relying on them. Supabase was considered and NOT chosen.

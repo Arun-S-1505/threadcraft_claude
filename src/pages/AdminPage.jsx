@@ -164,6 +164,18 @@ function OrderDetail({ id, onBack, onDenied }) {
     }))
   }, [order])
 
+  const erase = async () => {
+    const ok = window.confirm(`Permanently erase the name, contact details, address, design and all files for order ${id}? The amounts and status are kept. This cannot be undone.`)
+    if (!ok) return
+    try {
+      const r = await api(`/api/admin/orders/${id}/personal-data`, { method: 'DELETE', json: { confirm: id } })
+      setSaveMsg(`Erased. ${r.filesRemoved} file(s) removed.`)
+      load()
+    } catch (e) {
+      setSaveMsg(e.message)
+    }
+  }
+
   const save = async () => {
     setSaving(true)
     setSaveMsg('')
@@ -181,7 +193,8 @@ function OrderDetail({ id, onBack, onDenied }) {
   if (error) return <><button className="tc-link" onClick={onBack}>← All orders</button><p className="tc-error">{error}</p></>
   if (!order) return <p className="ad__note">Loading…</p>
 
-  const isCustom = order.kind === 'custom'
+  const erased = order.spec?.erased === true
+  const isCustom = order.kind === 'custom' && !erased
   const spec = order.spec
   const viewOrder = Object.keys(PLACE_LABEL)
   const previews = order.files.filter((f) => f.kind === 'preview').sort((a, b) => viewOrder.indexOf(a.label) - viewOrder.indexOf(b.label))
@@ -224,6 +237,8 @@ function OrderDetail({ id, onBack, onDenied }) {
           </label>
           <button className="tc-btn tc-btn--primary tc-btn--sm" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
           {saveMsg && <p className="ad__note" role="status">{saveMsg}</p>}
+          {!erased && <button className="tc-btn tc-btn--ghost tc-btn--sm" onClick={erase}>Erase customer data</button>}
+          {erased && <p className="ad__muted">Customer data was erased.</p>}
           <ul className="ad__history">
             {order.history.map((h, i) => <li key={i}>{fmt(h.at)} · {h.status}{h.tracking_no ? ` (${h.tracking_no})` : ''} · {h.actor}</li>)}
           </ul>
@@ -283,7 +298,7 @@ function OrderDetail({ id, onBack, onDenied }) {
             ))}
           </ul>
         </section>
-      ) : (
+      ) : erased ? null : (
         <section className="ad__card">
           <h2>Items</h2>
           <ul className="ad__items">

@@ -2,13 +2,16 @@ name = "threadcraft-api"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
 
+# The API answers on the same address as the site, so the browser and the admin login stay same-origin.
+routes = [{ pattern = "www.threadcraft.company/api/*", zone_name = "threadcraft.company" }]
+
 # Non-secret settings. Secrets (RESEND_API_KEY, RAZORPAY_WEBHOOK_SECRET) go in
 # `wrangler secret put`, never in this file. Local values live in .dev.vars.
 [vars]
 # Razorpay: add RAZORPAY_KEY_ID here (public id) and set RAZORPAY_KEY_SECRET + RAZORPAY_WEBHOOK_SECRET with `wrangler secret put`.
-ALLOWED_ORIGIN = "http://localhost:5173"   # set to the Pages domain in production
+ALLOWED_ORIGIN = "https://www.threadcraft.company"
 OWNER_EMAIL = "threadcraftcustomwear@gmail.com"
-FROM_EMAIL = "ThreadCraft <orders@example.com>"  # must be a domain verified in Resend
+FROM_EMAIL = "ThreadCraft <orders@threadcraft.company>"  # threadcraft.company must be verified in Resend
 ADMIN_EMAILS = "threadcraftcustomwear@gmail.com"  # allowlist, checked on top of Cloudflare Access
 ACCESS_TEAM_DOMAIN = ""  # e.g. yourteam.cloudflareaccess.com
 ACCESS_AUD = ""          # Application Audience (AUD) tag from the Access app

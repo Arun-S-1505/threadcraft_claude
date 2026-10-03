@@ -136,6 +136,15 @@ check('bulk saved', (await jpost('/api/bulk', { company: 'Acme', contact: 'Ravi'
 const msgs = await (await admin('/messages')).json()
 check('admin lists 2 messages (honeypot dropped)', msgs.messages.length === 2, String(msgs.messages?.length))
 
+// Erasing personal data: order stays for accounting, personal info and files go
+const toErase = await (await post(orderForm())).json()
+check('erase needs confirmation', (await admin(`/orders/${toErase.orderId}/personal-data`, { method: 'DELETE', body: '{}', headers: json })).status === 400)
+const erased = await (await admin(`/orders/${toErase.orderId}/personal-data`, { method: 'DELETE', body: JSON.stringify({ confirm: toErase.orderId }), headers: json })).json()
+check('erase removes order files', erased.ok === true)
+const after2 = await (await admin(`/orders/${toErase.orderId}`)).json()
+check('erased order keeps total, loses personal data', after2.customer_name === '[erased]' && after2.address === '' && after2.total > 0 && after2.spec.erased === true && after2.files.length === 0)
+check('erased customer cannot be tracked by old email', (await api(`/api/track?id=${toErase.orderId}&email=test@example.com`)).status === 404)
+
 // Backup writes last-month JSON into R2
 const backup = await (await admin(`/backup?month=${new Date().toISOString().slice(0, 7)}`, { method: 'POST' })).json()
 check('backup counts orders', backup.orders >= 3 && backup.messages === 2, JSON.stringify(backup))
@@ -159,6 +168,13 @@ if (!REMOTE) {
   check('gateway: shop online order returns payment params', s.payment?.gatewayOrderId === 'order_TEST2', JSON.stringify(s))
   const retry = await jpost('/api/pay', { id: o.orderId, email: customer.email }, gw)
   check('gateway: retry payment works', retry.status === 200 && (await retry.json()).payment.gatewayOrderId === 'order_TEST3')
+  // An order taken before the gateway existed becomes payable once it is switched on
+  const before = makeApi({ DEV_ADMIN_EMAIL: 'threadcraftcustomwear@gmail.com' })
+  const early = await (await before.api('/api/orders', { method: 'POST', body: orderForm() })).json()
+  const later = makeApi({ DB: before.env.DB, FILES: before.env.FILES, DEV_ADMIN_EMAIL: 'threadcraftcustomwear@gmail.com', RAZORPAY_KEY_ID: 'rzp_test_abc', RAZORPAY_KEY_SECRET: 'sek' })
+  check('invoice order starts as invoice', (await (await later.api(`/api/track?id=${early.orderId}&email=${customer.email}`)).json()).payment_method === 'invoice')
+  check('invoice order can pay once gateway is on', (await jpost('/api/pay', { id: early.orderId, email: customer.email }, later.api)).status === 200)
+  check('invoice order is now online', (await (await later.api(`/api/track?id=${early.orderId}&email=${customer.email}`)).json()).payment_method === 'online')
   check('gateway: retry with wrong email -> 404', (await jpost('/api/pay', { id: o.orderId, email: 'x@example.com' }, gw)).status === 404)
   globalThis.fetch = realFetch
 }

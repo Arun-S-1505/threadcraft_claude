@@ -4,4 +4,4 @@ Disallow: /api/
 Disallow: /checkout
 Disallow: /order-confirmation
 Disallow: /track-order
-# Add after the domain is live: Sitemap: https://YOUR-DOMAIN/sitemap.xml
+Sitemap: https://www.threadcraft.company/sitemap.xml

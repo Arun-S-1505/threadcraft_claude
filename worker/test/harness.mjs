@@ -39,6 +39,7 @@ export function makeR2() {
     head: async (k) => (store.has(k) ? { key: k } : null),
     put: async (k, bytes, opts) => void store.set(k, { bytes, opts }),
     get: async (k) => (store.has(k) ? { body: store.get(k).bytes } : null),
+    delete: async (k) => void store.delete(k),
   }
 }
 

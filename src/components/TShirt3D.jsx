@@ -210,7 +210,7 @@ export default function TShirt3D({
 
   return (
     <CanvasErrorBoundary>
-      <div className="w-full h-full relative" ref={wrapRef}>
+      <div style={{ width: '100%', height: '100%', position: 'relative' }} ref={wrapRef}>
         <Canvas
           shadows={false}
           dpr={[1, 1.5]}

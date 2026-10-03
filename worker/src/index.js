@@ -212,7 +212,10 @@ app.post('/api/pay', rateLimit, async (c) => {
   if (order.status === 'cancelled' || order.payment_method === 'cod') return c.json({ error: 'Payment is not needed for this order' }, 400)
   if (!gatewayEnabled(c.env)) return c.json({ error: 'Online payment is not available yet' }, 400)
   try {
-    return c.json({ payment: await createGatewayOrder(c.env, order) })
+    const payment = await createGatewayOrder(c.env, order)
+    // An order taken before the gateway existed ("invoice") becomes a normal online order
+    await c.env.DB.prepare(`UPDATE orders SET payment_method = 'online' WHERE id = ? AND payment_method = 'invoice'`).bind(id).run()
+    return c.json({ payment })
   } catch (err) {
     return c.json({ error: err.message }, 502)
   }
@@ -328,6 +331,41 @@ admin.get('/export', async (c) => {
   const cols = ['id', 'created_at', 'status', 'payment_status', 'payment_id', 'tracking_no', 'customer_name', 'email', 'phone', 'address', 'city', 'pincode', 'notes', 'size', 'quantity', 'unit_price', 'total']
   const csv = [cols.join(','), ...results.map((r) => cols.map((k) => csvCell(r[k])).join(','))].join('\n')
   return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="orders-${month}.csv"` } })
+})
+
+// Erase a customer's personal data on request. The order row stays (amounts, status) for accounting,
+// but name, contact, address, notes, the design and every stored file are removed.
+admin.delete('/orders/:id/personal-data', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json().catch(() => ({}))
+  if (body.confirm !== id) return c.json({ error: 'Send {"confirm": "<order id>"} to confirm' }, 400)
+  const db = c.env.DB
+  const order = await db.prepare(`SELECT id FROM orders WHERE id = ?`).bind(id).first()
+  if (!order) return c.json({ error: 'Not found' }, 404)
+
+  const linked = (await db.prepare(`SELECT DISTINCT sha256 FROM order_files WHERE order_id = ?`).bind(id).all()).results
+  const at = now()
+  await db.batch([
+    db.prepare(`UPDATE orders SET customer_name='[erased]', email='erased-' || id || '@invalid', phone='', address='', city='', pincode='', notes=NULL, spec_json='{"erased":true,"items":[]}', updated_at=?1 WHERE id=?2`).bind(at, id),
+    db.prepare(`DELETE FROM order_files WHERE order_id = ?`).bind(id),
+    db.prepare(`INSERT INTO status_history (order_id, status, actor, at) VALUES (?,?,?,?)`).bind(id, 'personal data erased', c.get('admin'), at),
+  ])
+  // Remove a file only if no other order still uses it (identical uploads are shared by hash)
+  let removed = 0
+  for (const { sha256 } of linked) {
+    const stillUsed = await db.prepare(`SELECT 1 FROM order_files WHERE sha256 = ? LIMIT 1`).bind(sha256).first()
+    if (!stillUsed) {
+      await c.env.FILES.delete(`files/${sha256}`)
+      await db.prepare(`DELETE FROM files WHERE sha256 = ?`).bind(sha256).run()
+      removed++
+    }
+  }
+  return c.json({ ok: true, filesRemoved: removed })
+})
+
+admin.delete('/messages/:id', async (c) => {
+  await c.env.DB.prepare(`DELETE FROM messages WHERE id = ?`).bind(Number(c.req.param('id'))).run()
+  return c.json({ ok: true })
 })
 
 admin.get('/messages', async (c) => {

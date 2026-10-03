@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { openCheckout } from '../lib/razorpay'
@@ -24,6 +24,11 @@ export default function TrackOrderPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [payMsg, setPayMsg] = useState('')
+  const [onlineOk, setOnlineOk] = useState(false)
+
+  useEffect(() => {
+    api('/api/config').then((c) => setOnlineOk(c.onlinePayments)).catch(() => {})
+  }, [])
 
   const lookup = async (e) => {
     e?.preventDefault()
@@ -108,10 +113,10 @@ export default function TrackOrderPage() {
             )}
 
             {order.payment_method === 'cod' && <p className="tc-note">Payment: cash on delivery.</p>}
-            {order.payment_method === 'invoice' && order.payment_status !== 'paid' && (
+            {order.payment_method === 'invoice' && order.payment_status !== 'paid' && !onlineOk && (
               <p className="tc-note">We will email you a payment request after reviewing your design.</p>
             )}
-            {order.payment_method === 'online' && order.payment_status !== 'paid' && order.status !== 'cancelled' && (
+            {(order.payment_method === 'online' || (order.payment_method === 'invoice' && onlineOk)) && order.payment_status !== 'paid' && order.status !== 'cancelled' && (
               <div className="tc-trackpage__pay">
                 <p className="tc-note">Payment is not complete yet.</p>
                 <button type="button" className="tc-btn tc-btn--primary tc-btn--sm" onClick={pay}>Pay {formatPrice(order.total)}</button>
