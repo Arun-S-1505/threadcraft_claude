@@ -82,6 +82,14 @@ Admin view should rebuild the 3D shirt read-only from the saved spec (reuse `TSh
 - Local dev: the dev API prints sign-in codes in its console (`DEV_LOGIN_CODES`); production never does.
 - **Schema changes are NOT applied by the deploy.** After adding tables, run `cd worker && npm run db:remote` BEFORE pushing code that uses them.
 
+### Scope decisions (owner, 2026-10-04)
+- We offer **DTF printing only**: no embroidery, screen print or DTG anywhere in the copy or options. Keep product descriptions consistent (the polo says "printed needle mark").
+- **No AI feature.** The studio's old AI tab was only a placeholder (no AI service was ever connected) and was removed. Studio tabs: Adjust, Text, Image, Layers.
+- Left/Right sleeve mean the **wearer's** left/right (`DECAL_MODEL_VERSION` 2).
+- Header, announcement strip and menus are `user-select: none` so clicking them never shows a typing cursor.
+- Sign-in card stays invisible until auth state and Google availability are known (cached per session), then fades in once; the Google button's space is reserved so nothing shifts.
+- Product page: "Buy it now" needs a size; without one it shows a clear message next to the button as well as at the size row.
+
 ### Mobile
 - Studio on screens <= 960px: the 3D shirt is pinned at the top (37vh), only the controls scroll beneath, bottom bar = price + Submit order, sliders get big thumbs on touch screens (`pointer: coarse`), and adding/selecting a design scrolls the controls to the adjust sliders.
 - Checkout on phones: form first, then payment, then the summary with the Pay button.

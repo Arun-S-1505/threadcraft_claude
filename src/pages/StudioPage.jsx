@@ -75,8 +75,6 @@ export default function StudioPage() {
   const [textFont, setTextFont] = useState('Geist')
   const [textColor, setTextColor] = useState('#FFFFFF')
   const [textSize, setTextSize] = useState(24)
-  const [aiPrompt, setAiPrompt] = useState('')
-  const [aiGenerating, setAiGenerating] = useState(false)
   const [lockAspectRatio, setLockAspectRatio] = useState(false)
 
   // Multi-Design Items List
@@ -190,33 +188,6 @@ export default function StudioPage() {
     reader.readAsDataURL(file)
   }
 
-  // ─── AI Generate Text / Graphic Item ───
-  const handleAiGenerate = () => {
-    if (!aiPrompt.trim()) return
-    setAiGenerating(true)
-    setTimeout(() => {
-      const newId = 'des_ai_' + Date.now()
-      const newItem = {
-        id: newId,
-        type: 'text',
-        text: `[AI] ${aiPrompt.slice(0, 30)}`,
-        textFont: 'Geist',
-        textColor: '#0051d5',
-        textSize: 26,
-        placement: currentPlacement,
-        pos: { x: 0, y: 0.04 },
-        scale: { x: 0.35, y: 0.25 },
-        isFixed: false,
-        visible: true,
-      }
-      setDesignList(prev => [...prev, newItem])
-      setActiveDesignId(newId)
-      setAiPrompt('')
-      setAiGenerating(false)
-      setActiveTab('select')
-    }, 1800)
-  }
-
   // ─── Fix / Embed Design onto 3D Shirt & Allow Next Action ───
   const handleFixDesign = (id) => {
     setDesignList(prev => prev.map(d => d.id === id ? { ...d, isFixed: true } : d))
@@ -312,7 +283,6 @@ export default function StudioPage() {
     { key: 'select', label: 'Adjust' },
     { key: 'text', label: 'Text' },
     { key: 'graphics', label: 'Image' },
-    { key: 'ai', label: 'AI' },
     { key: 'layers', label: `Layers (${designList.length})` },
   ]
 
@@ -495,19 +465,6 @@ export default function StudioPage() {
                     <small>PNG with a transparent background works best, at least 1000 px on the longest side. Max 8 MB. Placing on {placementLabel(currentPlacement)?.toLowerCase()}.</small>
                   </button>
                   {uploadError && <p className="tc-error" role="alert">{uploadError}</p>}
-                </div>
-              )}
-
-              {/* AI */}
-              {activeTab === 'ai' && (
-                <div className="sx__tab">
-                  <div className="sx__field">
-                    <div className="sx__label"><label htmlFor="sx-ai">Describe what you want</label></div>
-                    <textarea id="sx-ai" className="tc-input" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="e.g. A minimalist geometric mountain range in blue" rows={3} />
-                  </div>
-                  <button type="button" className="tc-btn tc-btn--primary tc-btn--block" onClick={handleAiGenerate} disabled={aiGenerating || !aiPrompt.trim()}>
-                    {aiGenerating ? 'Generating…' : 'Generate design'}
-                  </button>
                 </div>
               )}
 

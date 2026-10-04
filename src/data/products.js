@@ -162,7 +162,7 @@ const products = [
     price: 999,
     art: 'mark',
     colors: [C.navy, C.white, C.sand],
-    blurb: 'Piqué cotton polo with a small embroidered needle mark on the chest.',
+    blurb: 'Piqué cotton polo with a small printed needle mark on the chest.',
   },
   {
     slug: 'midnight-torii-tee',

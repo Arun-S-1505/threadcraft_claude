@@ -34,6 +34,17 @@ const COPY = {
 // Only follow same-site paths after signing in (never an address on another website)
 const safeNext = (value) => (value && value.startsWith('/') && !value.startsWith('//') ? value : '/account')
 const METHOD_KEY = 'tc_auth_method'
+const GOOGLE_KEY = 'tc_google_id'
+// Remembered for the session so the page does not rearrange itself every time it opens.
+// undefined = not known yet, null = not offered, string = client id
+const readGoogleCache = () => {
+  try {
+    const v = sessionStorage.getItem(GOOGLE_KEY)
+    return v === null ? undefined : v === 'none' ? null : v
+  } catch {
+    return undefined
+  }
+}
 const readMethod = () => {
   try {
     return localStorage.getItem(METHOD_KEY) === 'code' ? 'code' : 'password'
@@ -58,7 +69,7 @@ function PasswordField({ id, label, value, onChange, autoComplete, hint }) {
 
 function AuthFlow({ mode }) {
   const copy = COPY[mode]
-  const { user, setUser } = useAuth()
+  const { user, loading, setUser } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const next = safeNext(params.get('next'))
@@ -70,7 +81,8 @@ function AuthFlow({ mode }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [wait, setWait] = useState(0)
-  const [googleId, setGoogleId] = useState(null)
+  const [googleId, setGoogleId] = useState(readGoogleCache)
+  const [waited, setWaited] = useState(false)
   const verifying = useRef(false)
   const embedded = isEmbeddedBrowser()
 
@@ -92,7 +104,17 @@ function AuthFlow({ mode }) {
   // Does this site offer Google sign-in?
   useEffect(() => {
     const ctrl = new AbortController()
-    api('/api/config', { signal: ctrl.signal }).then((c) => setGoogleId(c.googleClientId || null)).catch(() => {})
+    api('/api/config', { signal: ctrl.signal })
+      .then((c) => {
+        const id = c.googleClientId || null
+        setGoogleId(id)
+        try {
+          sessionStorage.setItem(GOOGLE_KEY, id || 'none')
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch((e) => e.name !== 'AbortError' && setGoogleId((g) => (g === undefined ? null : g)))
     return () => ctrl.abort()
   }, [])
 
@@ -185,11 +207,19 @@ function AuthFlow({ mode }) {
     }
   }
 
-  const showGoogle = mode !== 'reset' && step === 'email' && googleId && !embedded
+  // Reserve the Google button's space while we are still finding out, so nothing jumps afterwards
+  const googleSpace = mode !== 'reset' && step === 'email' && !embedded && (googleId === undefined || !!googleId)
+
+  // Fade the page in once, when it is stable. A slow network never leaves it blank for more than a moment.
+  useEffect(() => {
+    const t = setTimeout(() => setWaited(true), 1200)
+    return () => clearTimeout(t)
+  }, [])
+  const ready = !user && ((!loading && googleId !== undefined) || waited)
 
   return (
     <div className="tc-page tc-auth">
-      <div className="tc-auth__card">
+      <div className="tc-auth__card" data-ready={ready ? 'true' : 'false'}>
         <p className="tc-eyebrow">{copy.eyebrow}</p>
         <h1 className="tc-h2">{copy.title}</h1>
 
@@ -197,9 +227,9 @@ function AuthFlow({ mode }) {
           <>
             <p className="tc-lead">{copy.lead}</p>
 
-            {showGoogle && (
+            {googleSpace && (
               <div className="tc-auth__google">
-                <GoogleButton clientId={googleId} mode={mode} onCredential={onGoogle} onError={setError} />
+                {googleId ? <GoogleButton clientId={googleId} mode={mode} onCredential={onGoogle} onError={setError} /> : <div className="tc-google" />}
                 <p className="tc-or"><span>or use your email</span></p>
               </div>
             )}

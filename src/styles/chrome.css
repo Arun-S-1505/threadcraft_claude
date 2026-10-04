@@ -59,6 +59,10 @@
 .tc-menu a, .tc-menu button { display: block; width: 100%; padding: 10px 20px; font-size: 13.5px; text-align: left; transition: background 0.2s; }
 .tc-menu a:hover, .tc-menu button:hover { background: var(--paper-2); }
 
+/* The announcement strip, header and menus are controls, not text to select: no typing cursor on click */
+.tc-ann, .tc-nav, .tc-mobile, .tc-menu { -webkit-user-select: none; user-select: none; caret-color: transparent; }
+.tc-nav input, .tc-mobile input { -webkit-user-select: text; user-select: text; }
+
 /* ---------- Mobile menu ---------- */
 .tc-mobile {
   position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column;

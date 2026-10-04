@@ -250,10 +250,15 @@ export default function ProductPage() {
             <button className="tc-btn tc-btn--ghost tc-btn--block" onClick={() => add(true)}>
               Buy it now
            </button>
+            {error && (
+              <p className="tc-error tc-buy__sizehint" role="alert">
+                Please choose a size above first, then tap again.
+              </p>
+            )}
 
             <ul className="tc-perks">
               <li> <span>Dispatched in {SITE.policy.dispatchHours} hours<small>Free over {formatPrice(SITE.policy.freeShippingThreshold)}</small></span></li>
-              <li> <span>Cash on delivery<small>On eligible pin codes</small></span></li>
+              <li> <span>Cash on delivery<small>Pay when it arrives</small></span></li>
               <li> <span>{SITE.policy.returnDays}-day returns<small>On unworn stock items</small></span></li>
             </ul>
 

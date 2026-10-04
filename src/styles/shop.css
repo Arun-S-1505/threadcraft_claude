@@ -137,6 +137,10 @@
 .tc-sizes { display: flex; flex-wrap: wrap; gap: 10px; }
 
 .tc-sizes.is-error .tc-size { border-color: var(--danger); }
+.tc-sizes.is-error { animation: tc-shake 0.4s; }
+.tc-buy__sizehint { margin-top: 10px; text-align: center; }
+@keyframes tc-shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .tc-sizes.is-error { animation: none; } }
 .tc-buy__actions { display: flex; gap: 10px; margin: 32px 0 12px; }
 .tc-buy__add { flex: 1; }
 .tc-perks { display: grid; gap: 0; margin: 28px 0; border-top: 1px solid var(--line); }

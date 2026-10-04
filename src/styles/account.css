@@ -82,3 +82,8 @@ input.tc-input.tc-codeinput::placeholder { letter-spacing: 0.3em; }
 .tc-pwfield__toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 10px 14px; font-size: 12.5px; color: var(--muted); }
 .tc-pwfield__toggle:hover { color: var(--ink); }
 .tc-me__password { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--line); }
+
+/* Sign-in card: invisible until the page knows who is signed in, then one calm fade (no flicker) */
+.tc-auth__card > * { transition: opacity 0.2s ease; }
+.tc-auth__card[data-ready='false'] > * { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .tc-auth__card > * { transition: none; } }
