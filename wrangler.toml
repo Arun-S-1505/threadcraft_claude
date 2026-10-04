@@ -25,8 +25,8 @@ ALLOWED_ORIGIN = "https://www.threadcraft.company"
 OWNER_EMAIL = "threadcraftcustomwear@gmail.com"
 FROM_EMAIL = "ThreadCraft <orders@threadcraft.company>"  # threadcraft.company must be verified in Resend
 ADMIN_EMAILS = "threadcraftcustomwear@gmail.com"  # allowlist, checked on top of Cloudflare Access
-ACCESS_TEAM_DOMAIN = ""  # e.g. yourteam.cloudflareaccess.com
-ACCESS_AUD = ""          # Application Audience (AUD) tag from the Access app
+ACCESS_TEAM_DOMAIN = "empty-lake-1bd9.cloudflareaccess.com"  # e.g. yourteam.cloudflareaccess.com
+ACCESS_AUD = "b808b87a7e426ea176b572de04314baf9e286098a898c943bf8781f0cd5fc45b"          # Application Audience (AUD) tag from the Access app
 
 [[d1_databases]]
 binding = "DB"
