@@ -245,6 +245,114 @@ if (!REMOTE) {
   check('logout: session no longer works', (await (await call('/api/me', {}, sess)).json()).user === null)
 }
 
+// Passwords and Google sign-in
+if (!REMOTE) {
+  const codes = {}
+  const CLIENT_ID = 'test-client.apps.googleusercontent.com'
+  const acc = makeApi({ DEV_LOGIN_CODES: '1', onLoginCode: (email, code) => (codes[email] = code), GOOGLE_CLIENT_ID: CLIENT_ID, PBKDF2_ITERATIONS: '20000' })
+  const call = (path, init = {}, cookie) => acc.api(path, { ...init, headers: { ...(init.headers || {}), ...(cookie ? { Cookie: cookie } : {}) } })
+  const jpost = (path, body, cookie) => call(path, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }, cookie)
+  const jpatch = (path, body, cookie) => call(path, { method: 'PATCH', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }, cookie)
+  const cookieOf = (res) => (res.headers.get('set-cookie') || '').split(';')[0]
+
+  // Sign up WITH a password: the email is still confirmed by a code before the account exists
+  check('password: weak password refused at sign-up', (await jpost('/api/auth/request-code', { email: 'pw@example.com', name: 'Pia', password: 'short' })).status === 400)
+  check('password: common password refused', (await jpost('/api/auth/request-code', { email: 'pw@example.com', name: 'Pia', password: 'password1' })).status === 400)
+  check('password: sign-up with password sends a code', (await jpost('/api/auth/request-code', { email: 'pw@example.com', name: 'Pia', password: 'river-stone-42' })).status === 200)
+  check('password: cannot sign in before the email is confirmed', (await jpost('/api/auth/login', { email: 'pw@example.com', password: 'river-stone-42' })).status === 401)
+  const first = await jpost('/api/auth/verify', { email: 'pw@example.com', code: codes['pw@example.com'] })
+  const firstCookie = cookieOf(first)
+  const me1 = (await (await call('/api/me', {}, firstCookie)).json()).user
+  check('password: account created after confirming, password recorded', first.status === 200 && me1.hasPassword === true, JSON.stringify(me1))
+  check('password: /me never exposes the hash', !JSON.stringify(me1).includes('pbkdf2') && !('password_hash' in me1))
+
+  // Sign in with the password
+  const ok = await jpost('/api/auth/login', { email: 'PW@example.com', password: 'river-stone-42' })
+  check('password: correct password signs in (email case ignored)', ok.status === 200 && cookieOf(ok).startsWith('tc_session='))
+  const bad = await jpost('/api/auth/login', { email: 'pw@example.com', password: 'wrong-password-1' })
+  const unknown = await jpost('/api/auth/login', { email: 'nobody@example.com', password: 'wrong-password-1' })
+  check('password: wrong password -> 401', bad.status === 401)
+  check('password: unknown email gets the same answer as a wrong password', unknown.status === 401 && (await unknown.json()).error === (await bad.json()).error)
+
+  // Lockout after repeated wrong passwords, with the email code as the way back in
+  for (let i = 0; i < 4; i++) await jpost('/api/auth/login', { email: 'pw@example.com', password: 'wrong-password-' + i })
+  check('password: locked after 5 wrong tries, even the right password waits', (await jpost('/api/auth/login', { email: 'pw@example.com', password: 'river-stone-42' })).status === 429)
+  await jpost('/api/auth/request-code', { email: 'pw@example.com' })
+  const viaCode = await jpost('/api/auth/verify', { email: 'pw@example.com', code: codes['pw@example.com'] })
+  check('password: an email code still gets them in while locked', viaCode.status === 200)
+  const afterCode = await jpost('/api/auth/login', { email: 'pw@example.com', password: 'river-stone-42' })
+  check('password: a successful code sign-in clears the lock', afterCode.status === 200)
+
+  // Change password from the profile
+  const sess = cookieOf(afterCode)
+  check('password change: needs the current password', (await jpatch('/api/me/password', { current: 'nope-nope-nope', password: 'blue-door-open-9' }, sess)).status === 400)
+  check('password change: weak new password refused', (await jpatch('/api/me/password', { current: 'river-stone-42', password: 'aaaaaaaa' }, sess)).status === 400)
+  const other = cookieOf(await jpost('/api/auth/login', { email: 'pw@example.com', password: 'river-stone-42' }))
+  const changed = await jpatch('/api/me/password', { current: 'river-stone-42', password: 'blue-door-open-9' }, sess)
+  check('password change: works with the right current password', changed.status === 200)
+  check('password change: old password no longer works', (await jpost('/api/auth/login', { email: 'pw@example.com', password: 'river-stone-42' })).status === 401)
+  check('password change: new password works', (await jpost('/api/auth/login', { email: 'pw@example.com', password: 'blue-door-open-9' })).status === 200)
+  check('password change: other devices are signed out', (await (await call('/api/me', {}, other)).json()).user === null)
+  check('password change: this device stays signed in', (await (await call('/api/me', {}, sess)).json()).user?.email === 'pw@example.com')
+
+  // An account created without a password can add one
+  await jpost('/api/auth/request-code', { email: 'nopw@example.com', name: 'Noor' })
+  const nopw = cookieOf(await jpost('/api/auth/verify', { email: 'nopw@example.com', code: codes['nopw@example.com'] }))
+  check('password: code-only account has no password', (await (await call('/api/me', {}, nopw)).json()).user.hasPassword === false)
+  check('password: password login refused for it', (await jpost('/api/auth/login', { email: 'nopw@example.com', password: 'anything-at-all-1' })).status === 401)
+  check('password: it can set one from the profile', (await jpatch('/api/me/password', { password: 'maple-syrup-33' }, nopw)).status === 200)
+  check('password: and then sign in with it', (await jpost('/api/auth/login', { email: 'nopw@example.com', password: 'maple-syrup-33' })).status === 200)
+
+  // Forgot password: confirm the email with a code while choosing a new password
+  await jpost('/api/auth/request-code', { email: 'forgot@example.com', name: 'Farah', password: 'first-pass-word-1' })
+  await jpost('/api/auth/verify', { email: 'forgot@example.com', code: codes['forgot@example.com'] })
+  check('forgot: original password works', (await jpost('/api/auth/login', { email: 'forgot@example.com', password: 'first-pass-word-1' })).status === 200)
+  await jpost('/api/auth/request-code', { email: 'forgot@example.com', password: 'second-pass-word-2' })
+  check('forgot: new password is NOT active until the email code is confirmed', (await jpost('/api/auth/login', { email: 'forgot@example.com', password: 'second-pass-word-2' })).status === 401)
+  await jpost('/api/auth/verify', { email: 'forgot@example.com', code: codes['forgot@example.com'] })
+  check('forgot: after the code, the new password works', (await jpost('/api/auth/login', { email: 'forgot@example.com', password: 'second-pass-word-2' })).status === 200)
+  check('forgot: and the old one is gone', (await jpost('/api/auth/login', { email: 'forgot@example.com', password: 'first-pass-word-1' })).status === 401)
+
+  // Google: make a throwaway signing key and pretend to be Google's certificate server
+  const pair = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify'])
+  const jwk = { ...(await crypto.subtle.exportKey('jwk', pair.publicKey)), kid: 'test-key-1', alg: 'RS256', use: 'sig' }
+  const enc = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  const makeToken = async (claims, key = pair.privateKey) => {
+    const head = enc({ alg: 'RS256', kid: 'test-key-1', typ: 'JWT' })
+    const body = enc(claims)
+    const sig = Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(head + '.' + body))).toString('base64url')
+    return head + '.' + body + '.' + sig
+  }
+  const nowS = Math.floor(Date.now() / 1000)
+  const good = { iss: 'https://accounts.google.com', aud: CLIENT_ID, sub: '1234567890', email: 'gina@example.com', email_verified: true, name: 'Gina Google', iat: nowS, exp: nowS + 3600 }
+  const realFetch = globalThis.fetch
+  globalThis.fetch = async (url, init) => (String(url).startsWith('https://www.googleapis.com/oauth2/v3/certs') ? new Response(JSON.stringify({ keys: [jwk] }), { status: 200 }) : realFetch(url, init))
+
+  const g = await jpost('/api/auth/google', { credential: await makeToken(good) })
+  const gCookie = cookieOf(g)
+  const gMe = (await (await call('/api/me', {}, gCookie)).json()).user
+  check('google: valid token signs in and creates the account', g.status === 200 && gMe?.email === 'gina@example.com' && gMe.name === 'Gina Google' && gMe.hasPassword === false, JSON.stringify(gMe))
+  check('google: signing in again reuses the account', (await jpost('/api/auth/google', { credential: await makeToken(good) })).status === 200)
+  check('google: a token for another app is refused', (await jpost('/api/auth/google', { credential: await makeToken({ ...good, aud: 'someone-elses-app' }) })).status === 401)
+  check('google: an expired token is refused', (await jpost('/api/auth/google', { credential: await makeToken({ ...good, exp: nowS - 60 }) })).status === 401)
+  check('google: an unverified email is refused', (await jpost('/api/auth/google', { credential: await makeToken({ ...good, email_verified: false }) })).status === 401)
+  check('google: a wrong issuer is refused', (await jpost('/api/auth/google', { credential: await makeToken({ ...good, iss: 'https://evil.example' }) })).status === 401)
+  const other2 = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify'])
+  check('google: a token signed with someone else\'s key is refused', (await jpost('/api/auth/google', { credential: await makeToken(good, other2.privateKey) })).status === 401)
+  check('google: garbage is refused', (await jpost('/api/auth/google', { credential: 'not.a.token' })).status === 401)
+  check('google: cross-site request is refused', (await call('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential: await makeToken(good) }), headers: { 'Content-Type': 'application/json', Origin: 'https://evil.example' } })).status === 403)
+
+  // Google sign-in links to the account that already holds the same email (and its guest orders)
+  const guest = await (await jpost('/api/shop-orders', { payment: 'cod', customer: { name: 'Gina', email: 'gina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#15171F', qty: 1 }] })).json()
+  const gOrders = await (await call('/api/me/orders', {}, gCookie)).json()
+  check('google: guest orders for that email appear', gOrders.orders?.some((o) => o.id === guest.orderId))
+  globalThis.fetch = realFetch
+
+  const noGoogle = makeApi({})
+  check('google: refused when it is not configured', (await noGoogle.api('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential: 'x.y.z' }), headers: { 'Content-Type': 'application/json' } })).status === 503)
+  check('google: config tells the page whether to show the button', (await (await call('/api/config')).json()).googleClientId === CLIENT_ID && (await (await noGoogle.api('/api/config')).json()).googleClientId === null)
+}
+
 // Admin must reject everyone when no valid Access login exists (production-like env)
 if (!REMOTE) {
   const { api: locked } = makeApi({ ACCESS_TEAM_DOMAIN: 'example.cloudflareaccess.com', ACCESS_AUD: 'abc' })

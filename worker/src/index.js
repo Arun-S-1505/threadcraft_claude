@@ -163,7 +163,7 @@ async function startPayment(c, id) {
 }
 
 /* ───────── Public: what the storefront may offer ───────── */
-app.get('/api/config', (c) => c.json({ onlinePayments: gatewayEnabled(c.env), cod: true }))
+app.get('/api/config', (c) => c.json({ onlinePayments: gatewayEnabled(c.env), cod: true, googleClientId: c.env.GOOGLE_CLIENT_ID || null }))
 
 /* ───────── Public: shop (cart) order ───────── */
 app.post('/api/shop-orders', rateLimit, async (c) => {

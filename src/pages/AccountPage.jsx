@@ -49,7 +49,12 @@ export default function AccountPage() {
           <button role="tab" aria-selected={tab === 'orders'} className={tab === 'orders' ? 'is-on' : ''} onClick={() => go('orders')}>Orders</button>
           <button role="tab" aria-selected={tab === 'profile'} className={tab === 'profile' ? 'is-on' : ''} onClick={() => go('profile')}>Profile</button>
         </div>
-        {tab === 'orders' ? <Orders email={user.email} /> : <Profile />}
+        {tab === 'orders' ? <Orders email={user.email} /> : (
+          <>
+            <Profile />
+            <PasswordCard />
+          </>
+        )}
       </div>
     </div>
   )
@@ -227,6 +232,65 @@ function Profile() {
       <div className="tc-me__save">
         <button type="submit" className="tc-btn tc-btn--primary" disabled={status === 'saving'}>{status === 'saving' ? 'Saving…' : 'Save changes'}</button>
         {status === 'saved' && <span className="tc-acct__saved" role="status">Saved</span>}
+      </div>
+    </form>
+  )
+}
+
+/* ───────── Password ───────── */
+function PasswordCard() {
+  const { user, setUser } = useAuth()
+  const [form, setForm] = useState({ current: '', password: '' })
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [show, setShow] = useState(false)
+  const has = user.hasPassword
+
+  const save = async (e) => {
+    e.preventDefault()
+    setError('')
+    setDone(false)
+    if (form.password.length < 8) return setError('Use at least 8 characters.')
+    setBusy(true)
+    try {
+      const res = await api('/api/me/password', { method: 'PATCH', json: { current: form.current, password: form.password } })
+      setUser(res.user)
+      setForm({ current: '', password: '' })
+      setDone(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="tc-me__profile tc-me__password" noValidate>
+      <h2 className="tc-ord__h">{has ? 'Change password' : 'Add a password'}</h2>
+      <p className="tc-note">
+        {has
+          ? 'Changing it signs you out on your other devices.'
+          : 'Optional. With a password you can sign in without waiting for an emailed code. You can always still use a code.'}
+      </p>
+      {has && (
+        <div className="tc-formfield">
+          <label htmlFor="pw-current">Current password</label>
+          <input id="pw-current" type={show ? 'text' : 'password'} className="tc-input" value={form.current} onChange={(e) => setForm((f) => ({ ...f, current: e.target.value }))} autoComplete="current-password" />
+        </div>
+      )}
+      <div className="tc-formfield">
+        <label htmlFor="pw-new">{has ? 'New password' : 'Password'}</label>
+        <div className="tc-pwfield">
+          <input id="pw-new" type={show ? 'text' : 'password'} className="tc-input" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} autoComplete="new-password" />
+          <button type="button" className="tc-pwfield__toggle" onClick={() => setShow((v) => !v)} aria-pressed={show}>{show ? 'Hide' : 'Show'}</button>
+        </div>
+        <p className="tc-auth__fine">At least 8 characters.{has && ' Forgot the current one? Sign out and use “Forgot password?” on the sign-in page.'}</p>
+      </div>
+      {error && <p className="tc-error" role="alert">{error}</p>}
+      <div className="tc-me__save">
+        <button type="submit" className="tc-btn tc-btn--primary" disabled={busy}>{busy ? 'Saving…' : has ? 'Change password' : 'Save password'}</button>
+        {done && <span className="tc-acct__saved" role="status">Password saved</span>}
       </div>
     </form>
   )

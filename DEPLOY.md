@@ -39,6 +39,15 @@ Never set `DEV_ADMIN_EMAIL` in production: it bypasses the admin login and exist
 ## Cloudflare Access (owner-only admin)
 Zero Trust, then Access, then Applications, then add a self-hosted app covering **both** `www.threadcraft.company/admin*` and `www.threadcraft.company/api/admin*`, allowing only the owner email. Copy the application's AUD tag into `ACCESS_AUD` and your `<team>.cloudflareaccess.com` into `ACCESS_TEAM_DOMAIN`. The Worker re-checks the signed Access token and `ADMIN_EMAILS` on every admin request, so the page being hidden is never the protection.
 
+## Sign in with Google (optional, free)
+Customers can sign in with one tap. You create a Google "OAuth client" once; only its public client id is used, so there is no secret to store.
+1. Go to https://console.cloud.google.com and create a project named "ThreadCraft".
+2. **APIs & Services**, then **OAuth consent screen** (also called "Google Auth Platform"). Choose **External**. App name `ThreadCraft`, your support email, and your email as developer contact. Scopes: only the default ones (email, profile, openid). Add your domain `threadcraft.company` under authorized domains, plus links to your privacy and terms pages (`https://www.threadcraft.company/policies/privacy` and `/terms`).
+3. **Publish the app** (button "Publish app" / set to "In production"). While it says "Testing", only 100 hand-picked test emails can sign in. Basic email/profile sign-in needs no Google review.
+4. **Credentials**, then **Create credentials**, then **OAuth client ID**, type **Web application**. Under **Authorized JavaScript origins** add `https://www.threadcraft.company` (and `http://localhost:5173` if you want to test locally). Leave "Authorized redirect URIs" empty.
+5. Copy the **Client ID** (ends in `.apps.googleusercontent.com`; it is public) into `wrangler.toml` as `GOOGLE_CLIENT_ID`, commit and push.
+6. Note: Google refuses sign-in inside Instagram's and Facebook's built-in browsers. The site hides the Google button there and offers email and password instead.
+
 ## Resend
 Verify `threadcraft.company` in Resend. Add the DNS records it shows in Cloudflare DNS, each set to **DNS only** (grey cloud). Create an API key with Sending access and store it with the command above.
 

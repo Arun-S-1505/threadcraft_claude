@@ -64,3 +64,21 @@ input.tc-input.tc-codeinput::placeholder { letter-spacing: 0.3em; }
 }
 
 .tc-menu__who { padding: 10px 20px 6px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+
+/* Google button, divider, method switch, password field */
+.tc-auth__google { margin-top: 28px; }
+.tc-google { display: flex; justify-content: center; min-height: 44px; }
+.tc-or { position: relative; margin: 22px 0 0; text-align: center; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.tc-or::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line); }
+.tc-or span { position: relative; padding: 0 14px; background: var(--paper); }
+.tc-auth__embedded { margin-top: 20px; padding: 12px 14px; background: var(--paper-2); border-left: 2px solid var(--ink); }
+.tc-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 28px; }
+.tc-seg button { padding: 12px 10px; font-size: 13.5px; border: 1px solid var(--line-strong); transition: all 0.2s; }
+.tc-seg button:hover { border-color: var(--ink); }
+.tc-seg button.is-on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.tc-seg + .tc-auth__form { margin-top: 20px; }
+.tc-pwfield { position: relative; }
+.tc-pwfield .tc-input { padding-right: 70px; }
+.tc-pwfield__toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 10px 14px; font-size: 12.5px; color: var(--muted); }
+.tc-pwfield__toggle:hover { color: var(--ink); }
+.tc-me__password { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--line); }

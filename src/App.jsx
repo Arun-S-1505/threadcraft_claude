@@ -12,7 +12,7 @@ import TrackOrderPage from './pages/TrackOrderPage'
 import WishlistPage from './pages/WishlistPage'
 import AdminPage from './pages/AdminPage'
 import AccountPage from './pages/AccountPage'
-import { SignInPage, SignUpPage } from './pages/AuthPages'
+import { SignInPage, SignUpPage, ResetPasswordPage } from './pages/AuthPages'
 import BulkOrdersPage from './pages/BulkOrdersPage'
 import SustainabilityPage from './pages/SustainabilityPage'
 import { ContactPage, PolicyPage, NotFoundPage } from './pages/InfoPages'
@@ -31,6 +31,7 @@ function App() {
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/login" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/account" element={<AccountPage />} />
         {/* Old links */}
         <Route path="/orders" element={<Navigate to="/account" replace />} />

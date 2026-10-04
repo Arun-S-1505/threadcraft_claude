@@ -8,6 +8,7 @@ const PORT = Number(process.env.PORT) || 8787
 const { api } = makeApi({
   DEV_ADMIN_EMAIL: 'threadcraftcustomwear@gmail.com',
   DEV_LOGIN_CODES: '1', // print sign-in codes in this console instead of emailing them
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID, // set to show the Google button locally
   ALLOWED_ORIGIN: 'http://localhost:5173',
   // Set these to try the Razorpay flow against a real test-mode account:
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,

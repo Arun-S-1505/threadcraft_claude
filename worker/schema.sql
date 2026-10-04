@@ -83,6 +83,10 @@ CREATE TABLE IF NOT EXISTS users (
   city          TEXT,
   state         TEXT,
   pincode       TEXT,
+  password_hash TEXT,                   -- optional: pbkdf2-sha256$iterations$salt$hash
+  failed_logins INTEGER NOT NULL DEFAULT 0,
+  locked_until  TEXT,                   -- password sign-in paused after repeated wrong passwords
+  google_sub    TEXT,                   -- Google account id, when they signed in with Google
   created_at    TEXT NOT NULL,
   last_login_at TEXT
 );
@@ -101,6 +105,7 @@ CREATE TABLE IF NOT EXISTS login_codes (
   email        TEXT PRIMARY KEY,
   code_hash    TEXT NOT NULL,
   name         TEXT,
+  password_hash TEXT,                  -- password chosen at sign-up, applied once the email is confirmed
   expires_at   TEXT NOT NULL,
   attempts     INTEGER NOT NULL DEFAULT 0,
   sent_count   INTEGER NOT NULL DEFAULT 1,
