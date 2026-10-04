@@ -27,7 +27,7 @@ OWNER_EMAIL = "threadcraftcustomwear@gmail.com"
 FROM_EMAIL = "ThreadCraft <orders@threadcraft.company>"  # threadcraft.company must be verified in Resend
 ADMIN_EMAILS = "threadcraftcustomwear@gmail.com"  # allowlist, checked on top of Cloudflare Access
 ACCESS_TEAM_DOMAIN = "empty-lake-1bd9.cloudflareaccess.com"  # e.g. yourteam.cloudflareaccess.com
-GOOGLE_CLIENT_ID = ""  # public OAuth client id for "Sign in with Google" (see DEPLOY.md). Empty hides the Google button.
+GOOGLE_CLIENT_ID = "915122929824-apsska825h112cnk6qdk4qvoth4prr59.apps.googleusercontent.com"  # public OAuth client id for "Sign in with Google" (see DEPLOY.md). Empty hides the Google button.
 # PBKDF2_ITERATIONS = "100000"  # password hashing cost; lower it (min 10000) only if the free plan reports CPU limit errors
 ACCESS_AUD = "b808b87a7e426ea176b572de04314baf9e286098a898c943bf8781f0cd5fc45b"          # Application Audience (AUD) tag from the Access app
 
