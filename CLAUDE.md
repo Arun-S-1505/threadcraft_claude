@@ -84,6 +84,7 @@ Admin view should rebuild the 3D shirt read-only from the saved spec (reuse `TSh
 ### Mobile
 - Studio on screens <= 960px: the 3D shirt is pinned at the top (37vh), only the controls scroll beneath, bottom bar = price + Submit order, sliders get big thumbs on touch screens (`pointer: coarse`), and adding/selecting a design scrolls the controls to the adjust sliders.
 - Checkout on phones: form first, then payment, then the summary with the Pay button.
+- Header on phones (`chrome.css`): the grid is `auto minmax(0,1fr) auto` so the name can shrink and can never be drawn over the icons (it used to overlap the search icon on real phones narrower than ~375px, which dev-tools emulation at 390px did not show). The name scales with the screen (`clamp` in vw) and is clipped, never spilled. Test header changes at 320, 340, 360, 375, 390, 412 and 430px wide.
 - Browser-pane note: use `resize_window` with width 390 height 844 (the "mobile" preset uses 2x pixels and its screenshots come out cropped).
 
 ### How things work

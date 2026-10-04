@@ -76,7 +76,9 @@
 @media (max-width: 960px) {
   .tc-nav__links { display: none; }
   .tc-nav__burger { display: inline-grid; }
-  .tc-nav__inner > .tc-brand { justify-self: center; grid-column: 2; grid-row: 1; }
+  .tc-nav__inner { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .tc-nav__inner > .tc-brand { justify-self: center; grid-column: 2; grid-row: 1; min-width: 0; max-width: 100%; overflow: hidden; }
+  .tc-brand__word { min-width: 0; overflow: hidden; }
   .tc-nav__burger { grid-column: 1; grid-row: 1; }
   .tc-nav__actions { grid-column: 3; grid-row: 1; gap: 8px; }
   .tc-brand__word { font-size: 19px; }
@@ -84,8 +86,18 @@
 }
 @media (max-width: 560px) {
   .tc-nav__wish { display: none; }
-  .tc-nav__inner { gap: 8px; }
-  .tc-nav__actions { margin-right: -8px; }
+  .tc-nav__inner { gap: 6px; }
+  .tc-nav__actions { gap: 0; margin-right: -8px; }
+  .tc-nav__actions .tc-iconbtn, .tc-nav__burger { width: 40px; height: 40px; }
+  .tc-brand { gap: 8px; }
+  .tc-brand__word { font-size: clamp(15px, 4.7vw, 18px); white-space: nowrap; }
+  .tc-brand__mark { height: 28px; }
+}
+@media (max-width: 380px) {
+  .tc-nav__actions .tc-iconbtn, .tc-nav__burger { width: 36px; height: 36px; }
+  .tc-brand { gap: 6px; }
+  .tc-brand__word { font-size: clamp(14px, 4.4vw, 16px); }
+  .tc-brand__mark { height: 24px; }
 }
 
 /* ---------- Scrim + Drawer ---------- */
