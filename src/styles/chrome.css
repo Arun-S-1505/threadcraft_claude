@@ -68,8 +68,8 @@
 .tc-mobile.is-open { visibility: visible; opacity: 1; }
 .tc-mobile__top { height: var(--nav-h); display: flex; align-items: center; justify-content: space-between; }
 .tc-mobile__links { flex: 1; display: flex; flex-direction: column; padding-top: 24px; }
-.tc-mobile__links a { padding: 16px 0; font-family: var(--serif); font-size: 28px; letter-spacing: -0.01em; border-bottom: 1px solid var(--line); }
-.tc-mobile__search { padding: 16px 0; font-family: var(--serif); font-size: 28px; letter-spacing: -0.01em; border-bottom: 1px solid var(--line); text-align: left; }
+.tc-mobile__links a { padding: 14px 0; font-family: var(--serif); font-size: 20px; letter-spacing: -0.005em; border-bottom: 1px solid var(--line); }
+.tc-mobile__search { padding: 14px 0; font-family: var(--serif); font-size: 20px; letter-spacing: -0.005em; border-bottom: 1px solid var(--line); text-align: left; }
 .tc-mobile__foot { text-align: center; }
 .tc-mobile__foot p { font-size: 13px; color: var(--muted); }
 

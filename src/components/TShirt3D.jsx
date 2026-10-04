@@ -139,7 +139,8 @@ function Model({ color, designList = [], activeDesignId, onSelectDesign, fit = '
 }
 
 /* ───────── Snapshot capture (frozen visual proof for orders) ───────── */
-const VIEW_AZIMUTH = { front: 0, back: Math.PI, left_sleeve: -Math.PI / 2, right_sleeve: Math.PI / 2 }
+// The wearer's left sleeve is on the +x side, so its camera sits on +x (azimuth +90 degrees)
+const VIEW_AZIMUTH = { front: 0, back: Math.PI, left_sleeve: Math.PI / 2, right_sleeve: -Math.PI / 2 }
 
 const nextFrames = (n) => new Promise((resolve) => {
   const tick = () => (--n <= 0 ? resolve() : requestAnimationFrame(tick))
@@ -195,8 +196,8 @@ export default function TShirt3D({
     const controls = controlsRef.current
     let targetAzimuth = 0
     if (viewAngle === 'back') targetAzimuth = Math.PI
-    else if (viewAngle === 'left_sleeve') targetAzimuth = -Math.PI / 2
-    else if (viewAngle === 'right_sleeve') targetAzimuth = Math.PI / 2
+    else if (viewAngle === 'left_sleeve') targetAzimuth = Math.PI / 2
+    else if (viewAngle === 'right_sleeve') targetAzimuth = -Math.PI / 2
     else targetAzimuth = 0 // front
 
     controls.setAzimuthalAngle(targetAzimuth)

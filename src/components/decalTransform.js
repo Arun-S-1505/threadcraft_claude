@@ -5,7 +5,7 @@ import { toOversized } from './oversizedFit'
  * Bump DECAL_MODEL_VERSION whenever the maths below (or oversizedFit.js) changes,
  * so orders saved under an older version keep their stored resolved transform.
  */
-export const DECAL_MODEL_VERSION = 1
+export const DECAL_MODEL_VERSION = 2 // v2: left/right sleeve swapped to mean the wearer's left/right
 
 export function getScaleXY(scale) {
   if (typeof scale === 'number') return { x: scale, y: scale }
@@ -23,10 +23,12 @@ function getBaseTransform(placement, pos, scale) {
   switch (p) {
     case 'back':
       return { position: [-x * 1.5, y * 1.5 - 0.02, -0.14], rotation: [0, Math.PI, 0], scale: [sX, sY, 0.26] }
+    // wearer's LEFT sleeve is on the +x side of the model
     case 'left_sleeve':
-      return { position: [-0.22 - y * 0.4, 0.08 + x * 0.4, 0.02], rotation: [0, -Math.PI / 2, 0], scale: [sX * 0.75, sY * 0.75, 0.15] }
-    case 'right_sleeve':
       return { position: [0.22 + y * 0.4, 0.08 - x * 0.4, 0.02], rotation: [0, Math.PI / 2, 0], scale: [sX * 0.75, sY * 0.75, 0.15] }
+    // wearer's RIGHT sleeve is on the -x side
+    case 'right_sleeve':
+      return { position: [-0.22 - y * 0.4, 0.08 + x * 0.4, 0.02], rotation: [0, -Math.PI / 2, 0], scale: [sX * 0.75, sY * 0.75, 0.15] }
     case 'front':
     default:
       return { position: [x * 1.5, y * 1.5 - 0.02, 0.14], rotation: [0, 0, 0], scale: [sX, sY, 0.26] }
