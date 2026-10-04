@@ -35,7 +35,7 @@ export async function notifyNewOrder(env, o) {
     <p>ThreadCraft</p>`
   await Promise.allSettled([
     send(env, { to: env.OWNER_EMAIL, subject: `New order ${o.id}`, html: owner, replyTo: o.customer.email }),
-    send(env, { to: o.customer.email, subject: `We received your ThreadCraft order ${o.id}`, html: customer }),
+    send(env, { to: o.customer.email, subject: `We received your ThreadCraft order ${o.id}`, html: customer, replyTo: env.OWNER_EMAIL }),
   ])
 }
 
