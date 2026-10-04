@@ -65,7 +65,7 @@ Do not put base64 images in the database. Warn the customer in the browser if an
 Admin view should rebuild the 3D shirt read-only from the saved spec (reuse `TShirt3D`) and show the snapshot beside it.
 
 ## Status of the plan
-All code for the plan is written and tested locally. What is left needs the owner's accounts or real content.
+**LIVE at https://www.threadcraft.company** (one Cloudflare Worker `threadcraft-claude` + D1 `threadcraft` + private R2 `threadcraft-files`, Cloudflare Access on /admin and /api/admin, Resend emails from orders@threadcraft.company, Razorpay in TEST mode). Verified live on 2026-10-04: custom studio order with test payment, shop COD, shop online payment, failed payment, signed webhook (paid + failed), emails, admin login. What is left is content and switching Razorpay to live.
 
 **Done and verified in a real browser against the local API:** Oversized fit (3D), studio Submit order (text + image uploads, previews, payment step), shop checkout (cash on delivery path), contact + bulk forms, track-order, admin list/detail with 3D rebuild, downloads, status + tracking updates, messages, backup, erase customer data.
 **Done and covered by `worker/test/smoke.mjs` (53 checks, run `npm run smoke` in worker/):** order validation, server-side pricing, file sniffing/SVG rejection, tracking, admin auth (403 cases), webhook signature + amount check + idempotency, Razorpay order creation (mocked gateway), messages, backup.
@@ -79,12 +79,17 @@ All code for the plan is written and tested locally. What is left needs the owne
 - **`wrangler dev` cannot run on the owner's PC** (Windows Application Control blocks `workerd.exe`; do not try to bypass it). Local full-stack dev: `cd worker && npm run dev:node` (in-memory data, acts as admin) plus `npm run dev`.
 - Dev-browser quirk: the preview pane throttles rendering until it is painted. Take a screenshot before scripting the 3D studio, or the OrbitControls ref stays null.
 
-## Remaining work (needs the owner)
-1. **Deploy** following `DEPLOY.md` (Cloudflare login needed: D1, R2, Pages, Access, secrets, domain). Nothing has run on real workerd yet; do a full test pass after the first deploy.
-2. **Razorpay**: merchant account + test keys, webhook URL, then live keys. The browser side of the gateway (opening checkout) has not been run against Razorpay itself, only the API side with a mock.
-3. **Resend**: verified sending domain + API key (emails are skipped with a log line until then).
-4. **Real content**: prices (`products.js`, `designSpec.js`), product photos (still procedural SVG `components/ui/Garment`), real contact/social in `site.js`, absolute `og:image` and a sitemap once the domain exists, real policy review.
-5. **Nice to have**: studio "Add to bag" (custom designs are ordered directly, not through the cart), customer accounts (intentionally not built), an admin screen for refunds (refunds are done in the Razorpay dashboard for now).
+## Remaining work
+1. **Content (owner provides):** real prices (`src/data/products.js`, `shared/designSpec.js`), real product photos (still procedural SVG `components/ui/Garment`), phone/WhatsApp, social links, business name/address in the footer (`src/config/site.js`; Razorpay live approval often checks these), review of shipping/returns/privacy/terms wording.
+2. **Razorpay LIVE:** generate live keys, change `RAZORPAY_KEY_ID` in `wrangler.toml`, replace the `RAZORPAY_KEY_SECRET` and `RAZORPAY_WEBHOOK_SECRET` secrets (dashboard: Settings > Variables and Secrets, type Secret), and add a LIVE-mode webhook (same URL, events payment.captured + payment.failed). Account accepts Indian cards/UPI only (international cards not enabled; use domestic test cards or UPI `success@razorpay` in test mode).
+3. **Cleanup:** erase the `TEST ...` orders in /admin (Erase customer data) before launch.
+4. **Optional:** redirect threadcraft.company (no www) to www (needs a proxied DNS record + Redirect Rule); studio "Add to bag"; admin refund screen (refunds are done in the Razorpay dashboard).
+5. **Not yet confirmed:** on a phone/own browser, the studio dialog shows "Your payment went through" after paying (the server side is confirmed).
+
+### Operating notes
+- Secrets live only in Cloudflare (RESEND_API_KEY, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET). A secret that is accidentally 1 character long makes Resend return an empty 400; the email code logs `keyLength` to diagnose this (`npx wrangler tail threadcraft-claude`).
+- Every push to main on GitHub auto-builds and deploys. Do not click "Retry build" on old failed builds (it re-runs an old commit).
+- `npm run build` output is served as static assets; `/api/*` runs the Hono Worker (`worker/src/index.js`).
 
 ### Owner facts (from the owner)
 - Domain: to be bought on name.com with the GitHub Student Developer Pack (any TLD the offer allows). Put DNS on Cloudflare (change nameservers at name.com).
