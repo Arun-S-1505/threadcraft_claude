@@ -1,18 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import Garment from '../components/ui/Garment'
 import { formatPrice } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
+import { useAuth } from '../store/AuthContext'
+import { STATES } from '../data/india'
 import { api } from '../lib/api'
 import { openCheckout } from '../lib/razorpay'
-
-const STATES = [
-  'Andhra Pradesh', 'Assam', 'Bihar', 'Chandigarh', 'Chhattisgarh', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh',
-  'Jammu & Kashmir', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Odisha', 'Punjab', 'Rajasthan',
-  'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Other',
-]
 
 const PAYMENTS = [
   { id: 'upi', icon: 'zap', title: 'UPI', text: 'Pay with any UPI app' },
@@ -27,6 +23,8 @@ export default function CheckoutPage() {
   const { lines, count, subtotal, shipping, gstIncluded, total, clearCart } = useStore()
   const [form, setForm] = useState(initial)
   const [errors, setErrors] = useState({})
+  const { user } = useAuth()
+  const prefilled = useRef(false)
   const [cfg, setCfg] = useState(null) // what the server can accept: { onlinePayments, cod }
   const [placing, setPlacing] = useState(false)
   const [formError, setFormError] = useState('')
@@ -42,6 +40,23 @@ export default function CheckoutPage() {
       .catch((e) => e.name !== 'AbortError' && setCfg({ onlinePayments: false, cod: true, offline: true }))
     return () => ctrl.abort()
   }, [])
+  // Signed-in customers get their saved details filled in (once, and only into empty fields)
+  useEffect(() => {
+    if (!user || prefilled.current) return
+    prefilled.current = true
+    const [firstName = '', ...rest] = (user.name || '').split(' ')
+    setForm((f) => ({
+      ...f,
+      email: f.email || user.email,
+      phone: f.phone || user.phone || '',
+      firstName: f.firstName || firstName,
+      lastName: f.lastName || rest.join(' '),
+      address: f.address || user.address || '',
+      city: f.city || user.city || '',
+      state: user.state || f.state,
+      pin: f.pin || user.pincode || '',
+    }))
+  }, [user])
   const payments = PAYMENTS.filter((p) => (cfg?.onlinePayments ? true : p.id === 'cod'))
 
   const set = (e) => {

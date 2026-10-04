@@ -7,6 +7,7 @@ import { notifyNewOrder, notifyMessage } from './email.js'
 import { gatewayEnabled, createGatewayOrder } from './payments.js'
 import { priceCart } from './catalog.js'
 import { runMonthlyBackup } from './backup.js'
+import { userRoutes, cleanupAuth } from './users.js'
 
 const app = new Hono()
 
@@ -382,6 +383,7 @@ admin.patch('/messages/:id', async (c) => {
 // Run the backup on demand (the cron does this monthly for the previous month)
 admin.post('/backup', async (c) => c.json(await runMonthlyBackup(c.env, c.req.query('month') || undefined)))
 
+app.route('/api', userRoutes({ rateLimit }))
 app.route('/api/admin', admin)
 
 /* ───────── Payment webhook (Razorpay) ───────── */
@@ -439,5 +441,5 @@ export { app }
 export default {
   fetch: app.fetch,
   // Monthly cron (see wrangler.toml): copies last month's orders and messages into R2 as a backup.
-  scheduled: (event, env, ctx) => ctx.waitUntil(runMonthlyBackup(env)),
+  scheduled: (event, env, ctx) => ctx.waitUntil(Promise.all([runMonthlyBackup(env), cleanupAuth(env)])),
 }

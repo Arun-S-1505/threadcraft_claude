@@ -8,7 +8,7 @@ async function send(env, { to, subject, html, replyTo }) {
   const key = cleanKey(env.RESEND_API_KEY)
   if (!key) {
     console.log('[email skipped: RESEND_API_KEY not set]', subject)
-    return
+    return false
   }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -18,7 +18,9 @@ async function send(env, { to, subject, html, replyTo }) {
   if (!res.ok) {
     // Safe diagnostics only: never log the key itself
     console.error('Email failed', res.status, await res.text(), JSON.stringify({ keyLength: key.length, looksLikeResendKey: key.startsWith('re_'), rawHadWhitespaceOrQuotes: String(env.RESEND_API_KEY) !== key, from: env.FROM_EMAIL }))
+    return false
   }
+  return true
 }
 
 /**
@@ -53,5 +55,20 @@ export async function notifyMessage(env, { kind, name, email, fields }) {
     subject: kind === 'bulk' ? `Bulk quote request from ${name}` : `Message from ${name}`,
     html: `<p>${esc(name)} &lt;${esc(email)}&gt;</p><ul>${rows}</ul>`,
     replyTo: email,
+  })
+}
+
+/** Sign-in code email. Returns true when the email was accepted, so the page can tell the customer if it was not. */
+export async function sendLoginCode(env, email, code, minutes) {
+  // Local development only: with no email key, hand the code to a test hook or the console instead.
+  if (!cleanKey(env.RESEND_API_KEY) && env.DEV_LOGIN_CODES === '1') {
+    if (typeof env.onLoginCode === 'function') env.onLoginCode(email, code)
+    else console.log(`[dev] sign-in code for ${email}: ${code}`)
+    return true
+  }
+  return send(env, {
+    to: email,
+    subject: `Your ThreadCraft sign-in code: ${code}`,
+    html: `<p>Your ThreadCraft sign-in code is:</p><p style="font-size:28px;letter-spacing:6px;font-weight:600">${esc(code)}</p><p>It works for ${minutes} minutes and only once. If you did not ask for it, you can ignore this email.</p><p>ThreadCraft</p>`,
   })
 }

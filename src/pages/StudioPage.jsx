@@ -97,6 +97,15 @@ export default function StudioPage() {
 
   // Refs
   const fileInputRef = useRef(null)
+  const designSecRef = useRef(null)
+
+  // On phones, bring the adjust controls into view when a design is added or picked
+  // (the 3D shirt stays pinned above, so the change is visible while sliding).
+  useEffect(() => {
+    if (!activeDesignId || !window.matchMedia('(max-width: 960px)').matches) return
+    const t = setTimeout(() => designSecRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120)
+    return () => clearTimeout(t)
+  }, [activeDesignId])
 
   // Pricing
   const basePrice = BASE_PRICES[printType] + FIT_PRICE[fit]
@@ -391,7 +400,7 @@ export default function StudioPage() {
             </section>
 
             {/* 2. Design */}
-            <section className="sx__sec">
+            <section className="sx__sec" ref={designSecRef}>
               <h2><span>2</span> Design</h2>
               <div className="sx__tabs" role="tablist">
                 {tabs.map((t) => (

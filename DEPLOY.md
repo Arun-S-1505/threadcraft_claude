@@ -48,7 +48,8 @@ Verify `threadcraft.company` in Resend. Add the DNS records it shows in Cloudfla
 3. An order is marked paid **only** by that signed webhook, and only if the captured amount equals the price the server computed.
 4. Switch to live keys after a full test pass. Until Razorpay is configured, the shop offers cash on delivery only.
 
-## Database changes
+## Database changes (run BEFORE pushing code that needs new tables)
+Cloudflare's automatic deploy updates the code but never the database. When `worker/schema.sql` gains tables or columns, apply it first, then push.
 ```bash
 cd worker && npm run db:remote   # re-applies schema.sql (safe: uses IF NOT EXISTS)
 ```

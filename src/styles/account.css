@@ -1,0 +1,66 @@
+/* Sign in / account: same calm look as the rest of the site */
+
+/* Sign-in code */
+.tc-auth__fine { font-size: 12.5px; line-height: 1.6; color: var(--muted); }
+.tc-auth__row { flex-wrap: wrap; }
+.tc-auth__row .tc-link:disabled { color: var(--muted); text-decoration: none; cursor: default; }
+input.tc-input.tc-codeinput { height: 60px; text-align: center; font-size: 28px; font-variant-numeric: tabular-nums; letter-spacing: 0.5em; padding-left: 0.5em; }
+input.tc-input.tc-codeinput::placeholder { letter-spacing: 0.3em; }
+.tc-auth__card .tc-lead strong { font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
+
+/* Account page */
+.tc-me { padding-block: 8px clamp(48px, 7vw, 96px); }
+.tc-me > * { max-width: 860px; }
+.tc-me__tabs { display: flex; gap: 28px; margin-bottom: 32px; border-bottom: 1px solid var(--line); }
+.tc-me__tabs button { padding: 14px 0; font-size: 14px; color: var(--muted); border-bottom: 1px solid transparent; margin-bottom: -1px; transition: color 0.2s; }
+.tc-me__tabs button:hover { color: var(--ink); }
+.tc-me__tabs button.is-on { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* Orders */
+.tc-ord { border-top: 1px solid var(--line); }
+.tc-ord > li { border-bottom: 1px solid var(--line); }
+.tc-ord > li.is-open { background: var(--paper-2); }
+.tc-ord__head { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 16px; align-items: center; width: 100%; padding: 18px 8px; text-align: left; }
+.tc-ord__thumb { width: 64px; height: 64px; display: grid; place-items: center; background: var(--paper-2); color: var(--muted); overflow: hidden; }
+.tc-ord > li.is-open .tc-ord__thumb { background: var(--paper); }
+.tc-ord__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.tc-ord__main { display: grid; gap: 2px; min-width: 0; }
+.tc-ord__main strong { font-weight: 500; font-size: 15px; }
+.tc-ord__main small { font-size: 12.5px; color: var(--muted); }
+.tc-ord__sum { font-size: 13.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-ord__side { display: grid; gap: 8px; justify-items: end; }
+.tc-ord__total { font-size: 15px; font-variant-numeric: tabular-nums; }
+.tc-ord__status { padding: 3px 10px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--line-strong); white-space: nowrap; }
+.tc-ord__status--paid, .tc-ord__status--delivered { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.tc-ord__status--printing, .tc-ord__status--shipped { border-color: var(--ink); }
+.tc-ord__status--cancelled { color: var(--danger); border-color: var(--danger); }
+.tc-ord__body { padding: 8px 8px 28px; }
+.tc-ord__cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); }
+.tc-ord__h { margin-bottom: 18px; font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.tc-ord__line { font-size: 14px; margin-bottom: 12px; }
+.tc-ord__items { display: grid; gap: 10px; }
+.tc-ord__items li { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; }
+.tc-ord__items small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+.tc-ord__items em { font-style: normal; font-variant-numeric: tabular-nums; }
+.tc-ord__sumlist { display: grid; gap: 6px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line-strong); font-size: 14px; }
+.tc-ord__sumlist > div { display: flex; justify-content: space-between; }
+.tc-ord__sumlist dt { color: var(--muted); }
+.tc-ord__grand dt { color: var(--ink) !important; }
+.tc-ord__grand dd { font-family: var(--serif); font-size: 20px; }
+.tc-ord .tc-trackpage__pay { margin-top: 18px; }
+.tc-ord .tc-track li { padding-bottom: 24px; }
+
+/* Profile */
+.tc-me__profile { display: grid; gap: 22px; max-width: 560px; }
+.tc-me__save { display: flex; align-items: center; gap: 16px; }
+
+@media (max-width: 720px) {
+  .tc-ord__head { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; padding: 16px 12px; }
+  .tc-ord__thumb { width: 52px; height: 52px; }
+  .tc-ord__side { grid-column: 2; grid-auto-flow: column; justify-content: space-between; align-items: center; }
+  .tc-ord__sum { white-space: normal; }
+  .tc-ord__body { padding: 8px 12px 24px; }
+  .tc-ord__cols { grid-template-columns: 1fr; }
+}
+
+.tc-menu__who { padding: 10px 20px 6px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }

@@ -6,6 +6,7 @@ import SearchOverlay from './SearchOverlay'
 import Toast from './ui/Toast'
 import { NAV_LINKS, SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
+import { useAuth } from '../store/AuthContext'
 import { useScrolled } from '../hooks/useReveal'
 
 /**
@@ -17,6 +18,7 @@ export default function Navbar({ announcement = false }) {
   const scrolled = useScrolled(announcement ? 36 : 8)
   const location = useLocation()
   const { count, wishlist, openDrawer } = useStore()
+  const { user, signOut } = useAuth()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -114,9 +116,22 @@ export default function Navbar({ announcement = false }) {
               </button>
               {profileOpen && (
                 <div className="tc-menu" role="menu">
+                  {user ? (
+                    <>
+                      <p className="tc-menu__who">{user.name || user.email}</p>
+                      <Link role="menuitem" to="/account">My orders</Link>
+                      <Link role="menuitem" to="/account?tab=profile">Profile</Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link role="menuitem" to="/login">Sign in</Link>
+                      <Link role="menuitem" to="/signup">Create account</Link>
+                    </>
+                  )}
                   <Link role="menuitem" to="/track-order">Track an order</Link>
                   <Link role="menuitem" to="/wishlist">Wishlist{wishlist.length > 0 ? ` (${wishlist.length})` : ''}</Link>
                   <Link role="menuitem" to="/contact">Contact us</Link>
+                  {user && <button role="menuitem" onClick={() => { setProfileOpen(false); signOut() }}>Sign out</button>}
                 </div>
               )}
             </div>
@@ -145,6 +160,7 @@ export default function Navbar({ announcement = false }) {
             <Link key={l.to} to={l.to}>{l.label}</Link>
           ))}
           <Link to="/wishlist">Wishlist</Link>
+          {user ? <Link to="/account">My orders</Link> : <Link to="/login">Sign in / Create account</Link>}
           <Link to="/track-order">Track an order</Link>
         </nav>
         <div className="tc-mobile__foot">

@@ -179,6 +179,72 @@ if (!REMOTE) {
   globalThis.fetch = realFetch
 }
 
+// Customer accounts: emailed one-time code sign-in
+if (!REMOTE) {
+  const codes = {}
+  const acc = makeApi({ DEV_LOGIN_CODES: '1', onLoginCode: (email, code) => (codes[email] = code) })
+  const call = (path, init = {}, cookie) => acc.api(path, { ...init, headers: { ...(init.headers || {}), ...(cookie ? { Cookie: cookie } : {}) } })
+  const jsonPost = (path, body, cookie, extra = {}) => call(path, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', ...extra } }, cookie)
+  const cookieOf = (res) => (res.headers.get('set-cookie') || '').split(';')[0]
+  const patchMe = (body, cookie) => call('/api/me', { method: 'PATCH', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }, cookie)
+
+  check('code: invalid email -> 400', (await jsonPost('/api/auth/request-code', { email: 'nope' })).status === 400)
+  const rc = await jsonPost('/api/auth/request-code', { email: 'Test@Example.com', name: 'Asha K' })
+  check('code: sent', rc.status === 200 && /^\d{6}$/.test(codes['test@example.com'] || ''), JSON.stringify(codes))
+  check('code: asking again at once -> 429', (await jsonPost('/api/auth/request-code', { email: 'test@example.com' })).status === 429)
+  const wrongCode = codes['test@example.com'] === '000000' ? '111111' : '000000'
+  check('code: wrong code -> 400', (await jsonPost('/api/auth/verify', { email: 'test@example.com', code: wrongCode })).status === 400)
+  const good = await jsonPost('/api/auth/verify', { email: 'test@example.com', code: codes['test@example.com'] })
+  const sess = cookieOf(good)
+  const setCookie = good.headers.get('set-cookie') || ''
+  check('code: right code signs in', good.status === 200 && sess.startsWith('tc_session='), setCookie)
+  check('code: cookie is HttpOnly + SameSite=Lax', /HttpOnly/i.test(setCookie) && /SameSite=Lax/i.test(setCookie), setCookie)
+  check('code: a code only works once', (await jsonPost('/api/auth/verify', { email: 'test@example.com', code: codes['test@example.com'] })).status === 400)
+
+  const me = await (await call('/api/me', {}, sess)).json()
+  check('me: signed-in user, name saved from sign-up', me.user?.email === 'test@example.com' && me.user.name === 'Asha K', JSON.stringify(me))
+  check('me: signed-out is null', (await (await call('/api/me')).json()).user === null)
+  check('me: bad cookie is null', (await (await call('/api/me', {}, 'tc_session=' + 'x'.repeat(43))).json()).user === null)
+
+  const upd = await patchMe({ name: 'Asha K', phone: '9876543210', address: '12 Test Street', city: 'Chennai', state: 'Tamil Nadu', pincode: '600001' }, sess)
+  check('profile: saved', upd.status === 200 && (await upd.json()).user.city === 'Chennai')
+  check('profile: bad phone -> 400', (await patchMe({ name: 'Asha K', phone: '12' }, sess)).status === 400)
+  check('profile: needs sign-in', (await patchMe({ name: 'Asha K' })).status === 401)
+
+  // orders placed as a guest with the same email appear under the account
+  const guestShop = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'test@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#15171F', qty: 2 }] })).json()
+  const guestCustom = await (await acc.api('/api/orders', { method: 'POST', body: orderForm() })).json()
+  const list = await (await call('/api/me/orders', {}, sess)).json()
+  check('orders: lists guest orders for the verified email', list.orders?.length === 2 && list.orders.some((o) => o.id === guestShop.orderId && o.summary.includes('Track Day Tee × 2')), JSON.stringify(list).slice(0, 300))
+  check('orders: custom order has a preview flag', list.orders.find((o) => o.id === guestCustom.orderId)?.hasPreview === true)
+  const det = await (await call('/api/me/orders/' + guestShop.orderId, {}, sess)).json()
+  check('orders: detail has items + history', det.items?.[0]?.name === 'Track Day Tee' && det.history?.length === 1)
+  const prev = await call('/api/me/orders/' + guestCustom.orderId + '/preview', {}, sess)
+  check('orders: owner can load the design preview', prev.status === 200 && /image\//.test(prev.headers.get('content-type') || ''))
+  check('orders: needs sign-in', (await call('/api/me/orders')).status === 401)
+
+  // another customer cannot see these orders
+  await jsonPost('/api/auth/request-code', { email: 'other@example.com', name: 'Other' })
+  const other = cookieOf(await jsonPost('/api/auth/verify', { email: 'other@example.com', code: codes['other@example.com'] }))
+  check('privacy: other customer sees no orders', (await (await call('/api/me/orders', {}, other)).json()).orders.length === 0)
+  check('privacy: other customer cannot open this order', (await call('/api/me/orders/' + guestShop.orderId, {}, other)).status === 404)
+  check('privacy: other customer cannot load this preview', (await call('/api/me/orders/' + guestCustom.orderId + '/preview', {}, other)).status === 404)
+
+  // brute force and cross-site protection
+  await jsonPost('/api/auth/request-code', { email: 'brute@example.com' })
+  const guess = codes['brute@example.com'] === '123456' ? '654321' : '123456'
+  const wrong = []
+  for (let i = 0; i < 5; i++) wrong.push((await jsonPost('/api/auth/verify', { email: 'brute@example.com', code: guess })).status)
+  check('lockout: 5 wrong codes are rejected', wrong.every((s) => s === 400), wrong.join())
+  check('lockout: even the right code is refused after 5 misses', (await jsonPost('/api/auth/verify', { email: 'brute@example.com', code: codes['brute@example.com'] })).status === 429)
+  check('csrf: request from another website -> 403', (await jsonPost('/api/auth/request-code', { email: 'x@example.com' }, undefined, { Origin: 'https://evil.example' })).status === 403)
+  check('csrf: own site origin is allowed', (await jsonPost('/api/auth/request-code', { email: 'ok@example.com' }, undefined, { Origin: 'http://localhost:5173' })).status === 200)
+
+  // sign out
+  await jsonPost('/api/auth/logout', {}, sess)
+  check('logout: session no longer works', (await (await call('/api/me', {}, sess)).json()).user === null)
+}
+
 // Admin must reject everyone when no valid Access login exists (production-like env)
 if (!REMOTE) {
   const { api: locked } = makeApi({ ACCESS_TEAM_DOMAIN: 'example.cloudflareaccess.com', ACCESS_AUD: 'abc' })

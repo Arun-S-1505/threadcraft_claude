@@ -265,7 +265,6 @@
 @media (max-width: 960px) {
   .tc-cart, .tc-checkout { grid-template-columns: 1fr; }
   .tc-summary { position: static; }
-  .tc-checkout > .tc-summary { order: -1; }
 }
 @media (max-width: 560px) { .tc-formgrid { grid-template-columns: 1fr; } .tc-panel { padding: 22px 18px; } }
 

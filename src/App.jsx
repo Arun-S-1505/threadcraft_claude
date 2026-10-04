@@ -11,6 +11,8 @@ import OrderConfirmationPage from './pages/OrderConfirmationPage'
 import TrackOrderPage from './pages/TrackOrderPage'
 import WishlistPage from './pages/WishlistPage'
 import AdminPage from './pages/AdminPage'
+import AccountPage from './pages/AccountPage'
+import { SignInPage, SignUpPage } from './pages/AuthPages'
 import BulkOrdersPage from './pages/BulkOrdersPage'
 import SustainabilityPage from './pages/SustainabilityPage'
 import { ContactPage, PolicyPage, NotFoundPage } from './pages/InfoPages'
@@ -27,10 +29,12 @@ function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
-        {/* Customer accounts are not built: old account URLs go to order tracking */}
-        {['/login', '/signup', '/orders', '/account', '/account/password'].map((p) => (
-          <Route key={p} path={p} element={<Navigate to="/track-order" replace />} />
-        ))}
+        <Route path="/login" element={<SignInPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        {/* Old links */}
+        <Route path="/orders" element={<Navigate to="/account" replace />} />
+        <Route path="/account/password" element={<Navigate to="/account?tab=profile" replace />} />
         <Route path="/track-order" element={<TrackOrderPage />} />
         <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
         <Route path="/bulk-orders" element={<BulkOrdersPage />} />

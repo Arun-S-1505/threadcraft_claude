@@ -9,7 +9,7 @@ Owner: ThreadCraft (threadcraftcustomwear@gmail.com). Expected volume: about 50-
 - 3D studio: three, @react-three/fiber, @react-three/drei. Model: `public/shirt_baked.glb` (single mesh node `T_Shirt_male`)
 - Hand-written CSS with `tc-` prefix in `src/styles/` (base, chrome, shop, home, pages, studio), all imported via `brand.css`. Studio uses `sx` / `sx__*` / `sx-seg` / `sx-slider` classes.
 - Tailwind was removed (the CDN script is gone); `base.css` has its own reset. Do not add Tailwind classes.
-- Backend code is in `worker/` (Hono on Workers, D1, R2). One Worker named `threadcraft-claude` (root `wrangler.toml`) serves site + API at https://www.threadcraft.company, deployed from GitHub by Cloudflare on every push to main (build `npm run build`, deploy `npx wrangler deploy`). The storefront calls relative `/api/*` (Vite proxies it to `localhost:8787` in dev). Cart/wishlist live in localStorage (StoreContext). There are no customer accounts.
+- Backend code is in `worker/` (Hono on Workers, D1, R2). One Worker named `threadcraft-claude` (root `wrangler.toml`) serves site + API at https://www.threadcraft.company, deployed from GitHub by Cloudflare on every push to main (build `npm run build`, deploy `npx wrangler deploy`). The storefront calls relative `/api/*` (Vite proxies it to `localhost:8787` in dev). Cart/wishlist live in localStorage (StoreContext). Customer accounts exist (emailed one-time code sign-in, no passwords).
 
 ## Target architecture (decided): all on Cloudflare free tier
 - Frontend: served by the SAME Worker as the API, as static assets from `dist/` (root `wrangler.toml`, `[assets]`, SPA fallback, `run_worker_first = ["/api/*"]`). Not Cloudflare Pages. Never add a `_redirects` file with `/* /index.html 200` (Cloudflare rejects it as a loop).
@@ -30,7 +30,7 @@ Owner: ThreadCraft (threadcraftcustomwear@gmail.com). Expected volume: about 50-
 
 ## Routes (src/App.jsx)
 Storefront pages sit inside `Layout`: home, shop, collections, product, cart, checkout, order-confirmation, wishlist, contact, policies, /bulk-orders, /sustainability (shown as "Our Craft"), /track-order (real lookup by order number + email).
-Old account URLs (/login, /signup, /orders, /account*) redirect to /track-order: the fake login pages were removed on purpose.
+Accounts: /login (sign in), /signup (create account), /account (Orders tab with tracking + Profile tab). /orders and /account/password redirect to /account. Guests can still order and use /track-order.
 `/studio` is standalone (own navbar, no footer). `/admin` is the owner area (`AdminPage.jsx`, no Layout, noindex).
 
 ## Business config
@@ -52,7 +52,7 @@ Old account URLs (/login, /signup, /orders, /account*) redirect to /track-order:
 4. Worker: validates the spec and files, recomputes price, stores files in R2 and the order row in D1, emails the owner, creates the Razorpay order when the gateway is configured, returns an order id.
 5. Customer pays through the gateway's hosted checkout; the webhook marks the order paid.
 6. Owner opens `/admin`, sees new orders, opens one (preview snapshot, live read-only 3D rebuild from the saved spec, original file downloads, customer and shipping details), prints, updates status (new, paid, printing, shipped, delivered) with a tracking number.
-7. Customer looks up status on /track-order with order number + email (there are no accounts).
+7. Customer looks up status on /track-order with order number + email, or signs in at /account to see all their orders (matched by verified email, so earlier guest orders appear too).
 Bulk orders and contact forms follow the same pattern: form to Worker to D1 + owner email.
 
 ## Design-spec storage rules (strict: the design must never change after the customer places it)
@@ -68,7 +68,20 @@ Admin view should rebuild the 3D shirt read-only from the saved spec (reuse `TSh
 **LIVE at https://www.threadcraft.company** (one Cloudflare Worker `threadcraft-claude` + D1 `threadcraft` + private R2 `threadcraft-files`, Cloudflare Access on /admin and /api/admin, Resend emails from orders@threadcraft.company, Razorpay in TEST mode). Verified live on 2026-10-04: custom studio order with test payment, shop COD, shop online payment, failed payment, signed webhook (paid + failed), emails, admin login. What is left is content and switching Razorpay to live.
 
 **Done and verified in a real browser against the local API:** Oversized fit (3D), studio Submit order (text + image uploads, previews, payment step), shop checkout (cash on delivery path), contact + bulk forms, track-order, admin list/detail with 3D rebuild, downloads, status + tracking updates, messages, backup, erase customer data.
-**Done and covered by `worker/test/smoke.mjs` (53 checks, run `npm run smoke` in worker/):** order validation, server-side pricing, file sniffing/SVG rejection, tracking, admin auth (403 cases), webhook signature + amount check + idempotency, Razorpay order creation (mocked gateway), messages, backup.
+**Done and covered by `worker/test/smoke.mjs` (79 checks, run `npm run smoke` in worker/):** order validation, server-side pricing, file sniffing/SVG rejection, tracking, admin auth (403 cases), webhook signature + amount check + idempotency, Razorpay order creation (mocked gateway), messages, backup, accounts (sign-in codes, lockouts, cookies, CSRF, privacy between customers).
+
+### Accounts (added 2026-10-04)
+- Sign-in = email + 6-digit code (Resend). `worker/src/users.js`: `/api/auth/request-code`, `/api/auth/verify`, `/api/auth/logout`, `/api/me` (GET/PATCH), `/api/me/orders`, `/api/me/orders/:id`, `/api/me/orders/:id/preview`. Tables: `users`, `sessions` (stores only a hash of the cookie token), `login_codes` (hashed, 10 min, 5 attempts, 45 s resend gap, 5 sends/hour/email). Cookie `tc_session` is HttpOnly, SameSite=Lax, 30 days. State-changing routes reject foreign `Origin`.
+- Orders are linked to an account by email, not by id. Erasing an order's personal data replaces its email, so it disappears from the account.
+- Resend free tier is about 100 emails/day: every sign-in code counts. Limits above exist to stop abuse burning it.
+- Frontend: `store/AuthContext.jsx`, `pages/AuthPages.jsx`, `pages/AccountPage.jsx`, `components/OrderTimeline.jsx`, `components/PayNow.jsx`, `styles/account.css`. Checkout and the studio order dialog prefill from the saved profile.
+- Local dev: the dev API prints sign-in codes in its console (`DEV_LOGIN_CODES`); production never does.
+- **Schema changes are NOT applied by the deploy.** After adding tables, run `cd worker && npm run db:remote` BEFORE pushing code that uses them.
+
+### Mobile
+- Studio on screens <= 960px: the 3D shirt is pinned at the top (37vh), only the controls scroll beneath, bottom bar = price + Submit order, sliders get big thumbs on touch screens (`pointer: coarse`), and adding/selecting a design scrolls the controls to the adjust sliders.
+- Checkout on phones: form first, then payment, then the summary with the Pay button.
+- Browser-pane note: use `resize_window` with width 390 height 844 (the "mobile" preset uses 2x pixels and its screenshots come out cropped).
 
 ### How things work
 - `shared/designSpec.js`: pricing, spec builder, validators, used by the browser AND the Worker. `worker/src/catalog.js` prices shop carts from `src/data/products.js` + `src/config/site.js`, so the displayed price is the charged price.

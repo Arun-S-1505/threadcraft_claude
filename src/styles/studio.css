@@ -103,17 +103,53 @@
 .sx__total dd { font-family: var(--serif); font-size: 26px; }
 .sx__foot > p { margin-top: 14px; font-size: 12.5px; color: var(--muted); }
 
-/* Small screens: stack, page scrolls */
+/* Phones and tablets: the 3D shirt stays pinned at the top; only the controls scroll beneath it.
+   (Before, the whole page scrolled, so the shirt disappeared while resizing or moving a print.) */
 @media (max-width: 960px) {
-  .sx { height: auto; min-height: 100vh; overflow: visible; }
-  .sx__body { display: block; }
-  .sx__stage { height: max(340px, min(80vw, 480px)); min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
+  .sx__body { display: flex; flex-direction: column; }
+  .sx__stage { flex: none; height: clamp(210px, 37vh, 420px); height: clamp(210px, 37dvh, 420px); border-right: 0; border-bottom: 1px solid var(--line); }
+  .sx__panel { flex: 1; min-height: 0; }
+  .sx__scroll { padding: 18px var(--gutter) 12px; }
   .sx__hint { display: none; }
-  .sx__scroll { overflow: visible; padding: 24px var(--gutter) 8px; }
-  .sx__foot { position: sticky; bottom: 0; padding: 14px var(--gutter) calc(14px + env(safe-area-inset-bottom)); }
-  .sx__foot > p { display: none; }
+  .sx__head h1 { font-size: 24px; }
+  .sx__sec { padding: 22px 0; margin-top: 22px; }
+
+  /* Compact bottom bar: price on the left, order button on the right */
+  .sx__foot { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 16px; padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 18px rgba(27, 27, 26, 0.06); }
   .sx__foot dl > div:not(.sx__total) { display: none; }
-  .sx__total { padding-top: 0; margin-top: 0; border-top: 0; }
+  .sx__total { padding-top: 0; margin-top: 0; border-top: 0; display: grid; gap: 0; }
+  .sx__total dd { font-size: 22px; line-height: 1.1; }
+  .sx__foot > p { display: none; }
+  .sx__foot .sx__submit { margin-top: 0; }
+
+  /* Tabs stay in reach while scrolling through the design controls */
+  .sx__tabs { position: sticky; top: -18px; z-index: 3; margin-top: -4px; padding-top: 12px; background: var(--paper); }
+  .sx__tabs button { padding-bottom: 14px; }
+
+  /* Compact adjust controls so the sliders are reachable without long scrolling */
+  .sx-seg--wrap { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .sx-seg--wrap button { padding: 10px 2px; font-size: 11.5px; letter-spacing: 0; }
+  .sx__editing { margin-bottom: 14px; padding: 8px 12px; }
+  .sx-slider { margin-bottom: 12px; }
+
+  /* Bigger touch targets */
+  .sx-seg button, .sx__lock { min-height: 44px; }
+  .sx .tc-swatch { width: 34px; height: 34px; }
+}
+
+/* Short landscape phones: shirt on the left, controls on the right */
+@media (max-width: 960px) and (orientation: landscape) and (max-height: 520px) {
+  .sx__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 46%); }
+  .sx__stage { height: auto; border-right: 1px solid var(--line); border-bottom: 0; }
+}
+
+/* Fingers need a bigger slider handle than a mouse pointer */
+@media (pointer: coarse) {
+  .sx-slider input[type='range'] { height: 36px; margin: 0; background: transparent; }
+  .sx-slider input[type='range']::-webkit-slider-runnable-track { height: 3px; background: var(--line-strong); }
+  .sx-slider input[type='range']::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: -12.5px; box-shadow: 0 0 0 6px rgba(27, 27, 26, 0.08); }
+  .sx-slider input[type='range']::-moz-range-track { height: 3px; background: var(--line-strong); }
+  .sx-slider input[type='range']::-moz-range-thumb { width: 28px; height: 28px; box-shadow: 0 0 0 6px rgba(27, 27, 26, 0.08); }
 }
 
 /* Submit order */
@@ -128,7 +164,6 @@
 .tc-order__done p { margin-bottom: 14px; color: var(--muted); font-size: 14.5px; }
 .tc-order__done strong { color: var(--ink); }
 .tc-order__note { font-size: 13px !important; }
-@media (max-width: 960px) { .sx__foot .sx__submit { margin-top: 10px; } .sx__foot dl > div.sx__total { margin-bottom: 0; } }
 
 /* Phones: keep all four view buttons visible without scrolling */
 @media (max-width: 480px) {
