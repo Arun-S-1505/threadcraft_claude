@@ -1,17 +1,24 @@
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch])
 const inr = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
+// Pasted secrets often carry a stray space, newline or quotes; those make the Authorization header invalid.
+const cleanKey = (k) => String(k ?? '').trim().replace(/^["']|["']$/g, '').trim()
+
 async function send(env, { to, subject, html, replyTo }) {
-  if (!env.RESEND_API_KEY) {
+  const key = cleanKey(env.RESEND_API_KEY)
+  if (!key) {
     console.log('[email skipped: RESEND_API_KEY not set]', subject)
     return
   }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'User-Agent': 'threadcraft-worker/1.0' },
     body: JSON.stringify({ from: env.FROM_EMAIL, to, subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
   })
-  if (!res.ok) console.error('Email failed', res.status, await res.text())
+  if (!res.ok) {
+    // Safe diagnostics only: never log the key itself
+    console.error('Email failed', res.status, await res.text(), JSON.stringify({ keyLength: key.length, looksLikeResendKey: key.startsWith('re_'), rawHadWhitespaceOrQuotes: String(env.RESEND_API_KEY) !== key, from: env.FROM_EMAIL }))
+  }
 }
 
 /**
