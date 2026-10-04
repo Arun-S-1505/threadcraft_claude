@@ -36,7 +36,7 @@ Accounts: /login (sign in), /signup (create account), /account (Orders tab with 
 ## Business config
 - `src/config/site.js`: site name, contact, nav links, announcements, policy (dispatch hours, `gsmRegular: 180`, `gsmOversized: 240`).
 - Regular fit tee = 180 GSM, oversized tee = 240 GSM. Keep copy consistent everywhere.
-- All prices are INR placeholders. Studio prices are in `src/pages/StudioPage.jsx`: BASE_PRICES {dtg 899, screen 799, embroidery 1199}, PRINT_FEES {199, 149, 299}, EXTRA_ITEM_FEE 99, FIT_PRICE {regular 0, oversized 200}. Replace with real prices. When orders go live, the Worker must recompute the price server-side from the design spec; never trust a total sent by the browser.
+- All prices are INR placeholders. Studio prices are in `src/pages/StudioPage.jsx`: BASE_PRICES {dtf 899}, PRINT_FEES {dtf 199} (DTF is the ONLY print method offered; the studio shows it as a label, not a choice; names in `PRINT_LABEL`), EXTRA_ITEM_FEE 99, FIT_PRICE {regular 0, oversized 200}. Replace with real prices. When orders go live, the Worker must recompute the price server-side from the design spec; never trust a total sent by the browser.
 
 ## Design Studio (src/pages/StudioPage.jsx + src/components/TShirt3D.jsx)
 - UI fully redesigned; logic preserved. Design items (`designList`) have: id, type ('text'|'image'), text, textColor, textSize, textFont, image (data URL), placement (front/back/left_sleeve/right_sleeve), pos {x,y}, scale {x,y}. Also state: shirt colour, fit (regular/oversized), print type, view angle.

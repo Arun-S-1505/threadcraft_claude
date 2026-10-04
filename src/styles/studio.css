@@ -107,7 +107,10 @@
    (Before, the whole page scrolled, so the shirt disappeared while resizing or moving a print.) */
 @media (max-width: 960px) {
   .sx__body { display: flex; flex-direction: column; }
-  .sx__stage { flex: none; height: clamp(210px, 37vh, 420px); height: clamp(210px, 37dvh, 420px); border-right: 0; border-bottom: 1px solid var(--line); }
+  .sx__stage { flex: none; display: flex; flex-direction: column; height: clamp(250px, 42vh, 460px); height: clamp(250px, 42dvh, 460px); border-right: 0; border-bottom: 1px solid var(--line); }
+  /* The view buttons sit in their own row above the 3D shirt, so they never cover it */
+  .sx__views { position: static; transform: none; flex: none; margin: 10px auto 0; }
+  .sx__canvas { position: relative; inset: auto; flex: 1; min-height: 0; }
   .sx__panel { flex: 1; min-height: 0; }
   .sx__scroll { padding: 18px var(--gutter) 12px; }
   .sx__hint { display: none; }
@@ -167,7 +170,7 @@
 
 /* Phones: keep all four view buttons visible without scrolling */
 @media (max-width: 480px) {
-  .sx__views { top: 12px; max-width: calc(100% - 16px); }
+  .sx__views { max-width: calc(100% - 16px); }
   .sx__views button { padding: 10px 9px; font-size: 11px; letter-spacing: 0.02em; }
   .tc-order.tc-modal__card, .tc-order { padding: 22px 18px; }
 }

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { computePrice, validateDesignSpec, validateCustomer, SIZES, PLACEMENTS } from '../../shared/designSpec.js'
+import { computePrice, validateDesignSpec, validateCustomer, SIZES, PLACEMENTS, PRINT_LABEL } from '../../shared/designSpec.js'
 import { readUploads, MAX_REQUEST_BYTES } from './files.js'
 import { requireAdmin } from './auth.js'
 import { notifyNewOrder, notifyMessage } from './email.js'
@@ -143,7 +143,7 @@ app.post('/api/orders', rateLimit, async (c) => {
       total,
       customer,
       paymentNote,
-      lines: [`${spec.garment.fit} tee (${spec.garment.gsm} GSM), size ${size}, ${spec.items.length} print(s), ${spec.garment.printType}`, `Quantity ${quantity} × ₹${unit}`],
+      lines: [`${spec.garment.fit} tee (${spec.garment.gsm} GSM), size ${size}, ${spec.items.length} print(s), ${PRINT_LABEL[spec.garment.printType] || spec.garment.printType}`, `Quantity ${quantity} × ₹${unit}`],
     })
   )
   return c.json({ orderId: id, total, payment: await startPayment(c, id) }, 201)

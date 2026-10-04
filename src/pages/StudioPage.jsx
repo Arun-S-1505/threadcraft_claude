@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar'
 import Icon from '../components/ui/Icon'
 import OrderDialog from '../components/OrderDialog'
 import { formatPrice } from '../data/products'
-import { BASE_PRICES, FIT_PRICE, printFee, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS } from '../../shared/designSpec'
+import { BASE_PRICES, FIT_PRICE, printFee, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL } from '../../shared/designSpec'
 
 /* ───────── Data ───────── */
 const colorOptions = [
@@ -22,12 +22,6 @@ const fitOptions = [
 ]
 
 const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL']
-
-const printOptions = [
-  { label: 'Direct to Garment (DTG)', value: 'dtg' },
-  { label: 'Screen Print', value: 'screen' },
-  { label: 'Premium Embroidery', value: 'embroidery' },
-]
 
 const placementOptions = [
   { label: 'Front Chest', value: 'front', icon: 'indeterminate_check_box' },
@@ -70,7 +64,7 @@ export default function StudioPage() {
   const [selectedColor, setSelectedColor] = useState(colorOptions[0])
   const [fit, setFit] = useState('regular')
   const [selectedSize, setSelectedSize] = useState('M')
-  const [printType, setPrintType] = useState('dtg')
+  const printType = 'dtf' // the only print method we offer
 
   // Placement & View state
   const [currentPlacement, setCurrentPlacement] = useState('front')
@@ -386,16 +380,8 @@ export default function StudioPage() {
               </div>
 
               <div className="sx__field">
-                <div className="sx__label"><label>Print technique</label></div>
-                <div className="sx__opts">
-                  {printOptions.map((opt) => (
-                    <button key={opt.value} type="button" className={printType === opt.value ? 'is-on' : ''} aria-pressed={printType === opt.value} onClick={() => setPrintType(opt.value)}>
-                      <span className="tc-radio" aria-hidden="true" />
-                      <span>{opt.label}</span>
-                      <em>{formatPrice(BASE_PRICES[opt.value] + FIT_PRICE[fit])}</em>
-                    </button>
-                  ))}
-                </div>
+                <div className="sx__label"><label>Print method</label><em>{PRINT_LABEL[printType]}</em></div>
+                <p className="sx__muted">Full-colour artwork, printed to order.</p>
               </div>
             </section>
 

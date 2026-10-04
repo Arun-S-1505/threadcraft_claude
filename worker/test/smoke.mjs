@@ -43,7 +43,7 @@ const designList = [
   { id: 't1', type: 'text', placement: 'back', pos: { x: 0, y: 0.04 }, scale: { x: 0.35, y: 0.25 }, text: 'Hello', textColor: '#000000', textSize: 24, textFont: 'Geist' },
 ]
 const files = { i1: { fileId: sha(art), sha256: sha(art) }, t1: { fileId: sha(textPng), sha256: sha(textPng) } }
-const spec = buildDesignSpec({ fit: 'oversized', colour: '#FFFFFF', printType: 'dtg', designList }, () => resolved, { files })
+const spec = buildDesignSpec({ fit: 'oversized', colour: '#FFFFFF', printType: 'dtf', designList }, () => resolved, { files })
 const customer = { name: 'Test Buyer', email: 'test@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001', notes: '' }
 
 function orderForm({ s = spec, size = 'M', quantity = 2, extraFiles = {}, skip = [], total } = {}) {

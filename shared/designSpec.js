@@ -7,7 +7,8 @@ export const SCHEMA_VERSION = 1
 
 export const FITS = { regular: { gsm: 180 }, oversized: { gsm: 240 } }
 export const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
-export const PRINT_TYPES = ['dtg', 'screen', 'embroidery']
+export const PRINT_TYPES = ['dtf']
+export const PRINT_LABEL = { dtf: 'DTF (Direct to Film)' }
 export const PLACEMENTS = ['front', 'back', 'left_sleeve', 'right_sleeve']
 export const FONTS = ['Geist', 'Inter', 'serif', 'monospace']
 export const SHIRT_COLOURS = {
@@ -19,8 +20,8 @@ export const SHIRT_COLOURS = {
 }
 
 // Prices in INR (placeholders: replace with real prices)
-export const BASE_PRICES = { dtg: 899, screen: 799, embroidery: 1199 }
-export const PRINT_FEES = { dtg: 199, screen: 149, embroidery: 299 }
+export const BASE_PRICES = { dtf: 899 }
+export const PRINT_FEES = { dtf: 199 }
 export const EXTRA_ITEM_FEE = 99
 export const FIT_PRICE = { regular: 0, oversized: 200 } // oversized uses the heavier 240 GSM fabric
 
