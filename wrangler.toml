@@ -21,7 +21,7 @@ run_worker_first = ["/api/*"]
 # `wrangler secret put`, never in this file. Local values live in worker/.dev.vars.
 [vars]
 # Razorpay public key id (test mode for now; swap to the live rzp_live_ id when going live). The secret and webhook secret are NOT here.
-RAZORPAY_KEY_ID = "rzp_test_SDX2yOvriWVjkC"
+RAZORPAY_KEY_ID = "rzp_test_TjkdWMQAedY2CP"
 ALLOWED_ORIGIN = "https://www.threadcraft.company"
 OWNER_EMAIL = "threadcraftcustomwear@gmail.com"
 FROM_EMAIL = "ThreadCraft <orders@threadcraft.company>"  # threadcraft.company must be verified in Resend
