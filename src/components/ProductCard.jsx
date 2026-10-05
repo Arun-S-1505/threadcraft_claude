@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from './ui/Icon'
 import ProductImage from './ui/ProductImage'
-import { SIZES, formatPrice } from '../data/products'
+import { formatPrice, sizesForProduct } from '../data/products'
 import { useStore } from '../store/StoreContext'
 
 export default function ProductCard({ product }) {
@@ -38,7 +38,7 @@ export default function ProductCard({ product }) {
         <div className={`tc-card__quick ${pickSize ? 'is-open' : ''}`}>
           {pickSize ? (
             <div className="tc-card__sizes" role="group" aria-label="Choose a size">
-              {SIZES.map((s) => (
+              {sizesForProduct(product, color.hex).map((s) => (
                 <button key={s} type="button" onClick={() => quickAdd(s)} className="tc-size tc-size--sm">
                   {s}
                 </button>

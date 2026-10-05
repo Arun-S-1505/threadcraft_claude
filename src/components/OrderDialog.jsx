@@ -118,7 +118,7 @@ export default function OrderDialog({ order, getCapture, onClose }) {
             <div className="tc-formgrid">
               {field('name', 'Full name', { autoComplete: 'name' })}
               {field('phone', 'Phone', { type: 'tel', autoComplete: 'tel' })}
-              {field('email', 'Email', { type: 'email', autoComplete: 'email' }, true)}
+              {field('email', user ? 'Email (your sign-in email)' : 'Email', { type: 'email', autoComplete: 'email', ...(user ? { readOnly: true } : {}) }, true)}
               {field('address', 'Delivery address', { autoComplete: 'street-address' }, true)}
               {field('city', 'City', { autoComplete: 'address-level2' })}
               {field('pincode', 'PIN code', { inputMode: 'numeric', maxLength: 6, autoComplete: 'postal-code' })}

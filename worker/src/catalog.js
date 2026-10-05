@@ -1,6 +1,6 @@
 // Shop pricing is computed here from the same catalog the storefront displays.
 // Nothing the browser sends (prices, totals) is trusted; only product ids, sizes, colours and quantities.
-import { getProductById } from '../../src/data/products.js'
+import { getProductById, sizesForProduct, codAllowed } from '../../src/data/products.js'
 import { SITE } from '../../src/config/site.js'
 import { SIZES } from '../../shared/designSpec.js'
 
@@ -21,6 +21,8 @@ export function priceCart(rawItems, { cod = false } = {}) {
     if (!Number.isInteger(qty) || qty < 1 || qty > MAX_LINE_QTY) return { error: 'Invalid quantity' }
     const colour = product.colors.find((c) => c.hex === raw.color)
     if (!colour) return { error: `Invalid colour for ${product.name}` }
+    if (!sizesForProduct(product, colour.hex).includes(raw.size)) return { error: `${product.name} in ${colour.name} is not available in size ${raw.size}` }
+    if (cod && !codAllowed(product)) return { error: `Cash on delivery is only available for t-shirts. Please pay online for ${product.name}.` }
     items.push({ productId: product.id, slug: product.slug, name: product.name, size: raw.size, colour: colour.name, colourHex: colour.hex, qty, price: product.price })
   }
 

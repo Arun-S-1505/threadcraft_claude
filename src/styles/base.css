@@ -396,3 +396,5 @@ input.tc-input.is-error, .tc-select.is-error select { border-color: var(--danger
     scroll-behavior: auto !important;
   }
 }
+.tc-size:disabled { opacity: 0.35; cursor: not-allowed; text-decoration: line-through; background: transparent; border-color: var(--line); color: var(--muted); }
+.tc-size:disabled:hover { border-color: var(--line); background: transparent; color: var(--muted); }

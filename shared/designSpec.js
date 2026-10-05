@@ -7,6 +7,12 @@ export const SCHEMA_VERSION = 1
 
 export const FITS = { regular: { gsm: 180 }, oversized: { gsm: 240 } }
 export const SIZES = ['S', 'M', 'L', 'XL'] // we do not sell XXL
+// Sizes we do not stock, per fit + colour (white oversized is not made in S)
+const UNAVAILABLE_SIZES = { 'oversized:#ffffff': ['S'] }
+export const sizesFor = (fit, hex) => {
+  const out = UNAVAILABLE_SIZES[`${fit}:${String(hex).toLowerCase()}`] || []
+  return SIZES.filter((s) => !out.includes(s))
+}
 export const PRINT_TYPES = ['dtf']
 // The colours we actually stock (hex approximates the real fabric; see the product photos).
 export const COLOURS = {

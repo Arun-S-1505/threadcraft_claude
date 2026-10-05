@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import Garment from '../components/ui/Garment'
-import { formatPrice } from '../data/products'
+import { formatPrice, codAllowed } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 import { useAuth } from '../store/AuthContext'
@@ -10,13 +10,7 @@ import { STATES } from '../data/india'
 import { api } from '../lib/api'
 import { openCheckout } from '../lib/razorpay'
 
-const PAYMENTS = [
-  { id: 'upi', icon: 'zap', title: 'UPI', text: 'Pay with any UPI app' },
-  { id: 'card', icon: 'card', title: 'Credit / debit card', text: 'Visa, Mastercard, RuPay' },
-  { id: 'cod', icon: 'cash', title: 'Cash on delivery', text: 'Pay when your order arrives' },
-]
-
-const initial = { email: '', phone: '', firstName: '', lastName: '', address: '', apartment: '', city: '', state: 'Tamil Nadu', pin: '', payment: 'upi', notes: '' }
+const initial = { email: '', phone: '', firstName: '', lastName: '', address: '', apartment: '', city: '', state: 'Tamil Nadu', pin: '', notes: '' }
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
@@ -34,8 +28,6 @@ export default function CheckoutPage() {
     api('/api/config', { signal: ctrl.signal })
       .then((c) => {
         setCfg(c)
-        // Without a payment gateway, only cash on delivery is offered
-        if (!c.onlinePayments) setForm((f) => ({ ...f, payment: 'cod' }))
       })
       .catch((e) => e.name !== 'AbortError' && setCfg({ onlinePayments: false, cod: true, offline: true }))
     return () => ctrl.abort()
@@ -47,7 +39,7 @@ export default function CheckoutPage() {
     const [firstName = '', ...rest] = (user.name || '').split(' ')
     setForm((f) => ({
       ...f,
-      email: f.email || user.email,
+      email: user.email, // always the sign-in email (locked), so we know who placed the order
       phone: f.phone || user.phone || '',
       firstName: f.firstName || firstName,
       lastName: f.lastName || rest.join(' '),
@@ -57,7 +49,11 @@ export default function CheckoutPage() {
       pin: f.pin || user.pincode || '',
     }))
   }, [user])
-  const payments = PAYMENTS.filter((p) => (cfg?.onlinePayments ? true : p.id === 'cod'))
+  // The email of a signed-in customer cannot be changed here; the server enforces it too
+  const emailLocked = !!user
+  const online = !!cfg?.onlinePayments
+  // Cash on delivery: t-shirts from the collection only
+  const codOk = !!cfg?.cod && lines.every((l) => codAllowed(l.product))
 
   const set = (e) => {
     const { name, value } = e.target
@@ -67,7 +63,7 @@ export default function CheckoutPage() {
 
   const validate = () => {
     const er = {}
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) er.email = 'Enter a valid email address'
+    if (!/^\S+@\S+\.\S+$/.test(emailLocked ? user.email : form.email)) er.email = 'Enter a valid email address'
     if (!/^[6-9]\d{9}$/.test(form.phone.replace(/\s|-/g, ''))) er.phone = 'Enter a valid 10-digit mobile number'
     if (!form.firstName.trim()) er.firstName = 'Required'
     if (!form.lastName.trim()) er.lastName = 'Required'
@@ -78,7 +74,7 @@ export default function CheckoutPage() {
     return Object.keys(er).length === 0
   }
 
-  const submit = async (e) => {
+  const submit = async (e, method = 'online') => {
     e.preventDefault()
     if (placing) return
     if (!validate()) {
@@ -91,10 +87,10 @@ export default function CheckoutPage() {
       const res = await api('/api/shop-orders', {
         method: 'POST',
         json: {
-          payment: form.payment,
+          payment: method,
           customer: {
             name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-            email: form.email.trim(),
+            email: (emailLocked ? user.email : form.email).trim(),
             phone: form.phone.trim(),
             address: [form.address.trim(), form.apartment.trim(), form.state].filter(Boolean).join(', '),
             city: form.city.trim(),
@@ -106,7 +102,7 @@ export default function CheckoutPage() {
         },
       })
 
-      let payState = form.payment === 'cod' ? 'cod' : 'pending'
+      let payState = method === 'cod' ? 'cod' : 'pending'
       if (res.payment?.gatewayOrderId) {
         // "completed" only means the customer finished; the server confirms payment via webhook
         const outcome = await openCheckout(res.payment, { description: `Order ${res.orderId}` }).catch(() => 'dismissed')
@@ -116,9 +112,9 @@ export default function CheckoutPage() {
       const order = {
         number: res.orderId,
         placedAt: new Date().toISOString(),
-        customer: { name: `${form.firstName} ${form.lastName}`, email: form.email, phone: form.phone },
+        customer: { name: `${form.firstName} ${form.lastName}`, email: emailLocked ? user.email : form.email, phone: form.phone },
         address: { line1: form.address, line2: form.apartment, city: form.city, state: form.state, pin: form.pin },
-        payment: form.payment,
+        payment: method,
         payState,
         items: lines.map((l) => ({ name: l.product.name, size: l.size, color: l.colorName, qty: l.qty, price: l.product.price })),
         subtotal: res.subtotal, // server-verified amounts
@@ -186,7 +182,7 @@ export default function CheckoutPage() {
         <div className="tc-container">
           <ol className="tc-progress" aria-label="Checkout progress">
             <li className="is-done"><span>1</span> Bag</li>
-            <li className="is-on"><span>2</span> Details &amp; payment</li>
+            <li className="is-on"><span>2</span> Details</li>
             <li><span>3</span> Confirmation</li>
           </ol>
           <h1 className="tc-h2 tc-h2--page">
@@ -203,7 +199,8 @@ export default function CheckoutPage() {
                 <h2>Contact</h2>
               </div>
               <div className="tc-formgrid">
-                {field('email', 'Email address', { type: 'email', autoComplete: 'email', wide: true, placeholder: 'you@email.com' })}
+                {field('email', 'Email address', { type: 'email', autoComplete: 'email', wide: true, placeholder: 'you@email.com', ...(emailLocked ? { readOnly: true, value: user.email, 'aria-readonly': true } : {}) })}
+                {emailLocked && <p className="tc-hint tc-formfield is-wide">Orders are placed with the email you signed in with, so we can match them to your account.</p>}
                 {field('phone', 'Mobile number', { type: 'tel', autoComplete: 'tel', wide: true, placeholder: '98765 43210', inputMode: 'numeric' })}
               </div>
             </section>
@@ -233,29 +230,6 @@ export default function CheckoutPage() {
               </div>
             </section>
 
-            <section className="tc-panel">
-              <div className="tc-panel__head">
-                <h2>Payment</h2>
-                <p>
- Encrypted &amp; secure
-                </p>
-              </div>
-              <div className="tc-pays" role="radiogroup" aria-label="Payment method">
-                {payments.map((p) => (
-                  <label key={p.id} className={`tc-pay-opt ${form.payment === p.id ? 'is-on' : ''}`}>
-                    <input type="radio" name="payment" value={p.id} checked={form.payment === p.id} onChange={set} />
-                    <span className="tc-pay-opt__icon">
-                      <Icon name={p.icon} size={20} />
-                    </span>
-                    <span className="tc-pay-opt__text">
-                      <strong>{p.title}</strong>
-                      <small>{p.text}</small>
-                    </span>
-                    <span className="tc-radio" />
-                  </label>
-                ))}
-              </div>
-            </section>
           </div>
 
           <aside className="tc-summary tc-summary--checkout" aria-label="Order summary">
@@ -300,9 +274,24 @@ export default function CheckoutPage() {
               </div>
             </dl>
             {formError && <p className="tc-error" role="alert">{formError}</p>}
-            <button type="submit" className="tc-btn tc-btn--primary tc-btn--block tc-btn--lg" disabled={placing || !cfg}>
-              {placing ? 'Placing your order…' : `${form.payment === 'cod' ? 'Place order' : 'Pay & place order'} · ${formatPrice(total)}`}
-            </button>
+            {online && (
+              <button type="submit" className="tc-btn tc-btn--primary tc-btn--block tc-btn--lg" disabled={placing || !cfg}>
+                {placing ? 'Placing your order…' : `Pay & place order · ${formatPrice(total)}`}
+              </button>
+            )}
+            {codOk && (
+              <button
+                type="button"
+                className={`tc-btn ${online ? 'tc-btn--ghost' : 'tc-btn--primary'} tc-btn--block ${online ? '' : 'tc-btn--lg'}`}
+                disabled={placing || !cfg}
+                onClick={(e) => submit(e, 'cod')}
+              >
+                {placing ? 'Placing your order…' : online ? 'Cash on delivery' : `Place order (cash on delivery) · ${formatPrice(total)}`}
+              </button>
+            )}
+            {cfg && !online && !codOk && <p className="tc-error" role="alert">Online payment is not available yet, and cash on delivery is only offered for t-shirts.</p>}
+            {online && !codOk && cfg && <p className="tc-hint">Cash on delivery is available only when your bag has t-shirts only. Hoodies and polos are paid online.</p>}
+            {online && codOk && <p className="tc-hint">Pay online now (UPI, card, netbanking), or pay in cash when it arrives.</p>}
             <ul className="tc-summary__trust">
               <li> Dispatched in {SITE.policy.dispatchHours} hours</li>
               <li> {SITE.policy.returnDays}-day returns on stock items</li>

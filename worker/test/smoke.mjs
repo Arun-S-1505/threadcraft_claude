@@ -121,6 +121,12 @@ check('shop bad colour -> 400', (await jpost('/api/shop-orders', { customer: sho
 check('shop bad product -> 400', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, productId: 9999 }] })).status === 400)
 check('shop qty over limit -> 400', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, qty: 99 }] })).status === 400)
 check('shop empty bag -> 400', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [] })).status === 400)
+check('shop COD refused for a hoodie', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, productId: 4 }] })).status === 400)
+check('shop COD refused when a hoodie is mixed in', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [line, { ...line, productId: 4 }] })).status === 400)
+check('shop white oversized in S refused', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 2, size: 'S', color: '#FFFFFF', qty: 1 }] })).status === 400)
+check('shop white oversized in M accepted (COD tee)', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 2, size: 'M', color: '#FFFFFF', qty: 1 }] })).status === 201)
+check('shop black oversized in S accepted', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 2, size: 'S', color: '#1A1A1A', qty: 1 }] })).status === 201)
+check('studio white oversized in S refused', (await post(orderForm({ size: 'S' }))).status === 400)
 const small = await (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, productId: 13, qty: 1 }] })).json()
 check('shop shipping fee below threshold', small.shipping === 79 && small.total === small.subtotal + 79, JSON.stringify(small))
 const shopDetail = await (await admin(`/orders/${shop.orderId}`)).json()
@@ -213,9 +219,11 @@ if (!REMOTE) {
 
   // orders placed as a guest with the same email appear under the account
   const guestShop = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'test@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#1A1A1A', qty: 2 }] })).json()
+  // a signed-in customer's order always carries the account email, whatever the browser sends
+  const spoof = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'someone-else@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#1A1A1A', qty: 1 }] }, sess)).json()
   const guestCustom = await (await acc.api('/api/orders', { method: 'POST', body: orderForm() })).json()
   const list = await (await call('/api/me/orders', {}, sess)).json()
-  check('orders: lists guest orders for the verified email', list.orders?.length === 2 && list.orders.some((o) => o.id === guestShop.orderId && o.summary.includes('Track Day Tee × 2')), JSON.stringify(list).slice(0, 300))
+  check('orders: lists guest orders for the verified email, and a signed-in order with a spoofed email lands on the account email', list.orders?.length === 3 && list.orders.some((o) => o.id === spoof.orderId) && list.orders.some((o) => o.id === guestShop.orderId && o.summary.includes('Track Day Tee × 2')), JSON.stringify(list).slice(0, 300))
   check('orders: custom order has a preview flag', list.orders.find((o) => o.id === guestCustom.orderId)?.hasPreview === true)
   const det = await (await call('/api/me/orders/' + guestShop.orderId, {}, sess)).json()
   check('orders: detail has items + history', det.items?.[0]?.name === 'Track Day Tee' && det.history?.length === 1)

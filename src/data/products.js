@@ -1,5 +1,5 @@
 import { SITE } from '../config/site.js'
-import { SIZES as SPEC_SIZES, COLOURS } from '../../shared/designSpec.js'
+import { SIZES as SPEC_SIZES, COLOURS, sizesFor } from '../../shared/designSpec.js'
 
 /* ───────── Formatting ───────── */
 const nf = new Intl.NumberFormat(SITE.currency.locale, { maximumFractionDigits: 0 })
@@ -7,6 +7,13 @@ export const formatPrice = (n) => `${SITE.currency.symbol}${nf.format(Math.round
 
 /* ───────── Shared option lists ───────── */
 export const SIZES = SPEC_SIZES
+
+/** Sizes in stock for a product in a colour (white oversized has no S). */
+export const sizesForProduct = (product, hex) => sizesFor(product.type === 'oversized' ? 'oversized' : 'regular', hex)
+
+/** Cash on delivery is only for t-shirts from the collection, never for custom studio orders. */
+export const COD_TYPES = ['tee', 'oversized']
+export const codAllowed = (product) => COD_TYPES.includes(product.type)
 
 export const TYPES = {
   tee: { label: 'Regular Tee', group: 'T-Shirts' },

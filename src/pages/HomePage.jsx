@@ -193,7 +193,7 @@ const FAQS = [
   },
   {
     q: 'Do you offer cash on delivery?',
-    a: 'Yes, for items from the shop. Cash on delivery is available alongside UPI and card payments. Custom studio orders are paid in advance.',
+    a: 'Yes, for t-shirts from the collection. At checkout you can pay online (UPI, card or netbanking) or choose cash on delivery. Custom studio orders are always paid in advance, and hoodies and polos are paid online.',
   },
   {
     q: 'How do I pick the right size?',

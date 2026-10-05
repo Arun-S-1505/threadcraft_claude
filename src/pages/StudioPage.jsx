@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar'
 import Icon from '../components/ui/Icon'
 import OrderDialog from '../components/OrderDialog'
 import { formatPrice } from '../data/products'
-import { BASE_PRICES, FIT_PRICE, printFee, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL, SIZES, COLOURS, coloursForFit } from '../../shared/designSpec'
+import { BASE_PRICES, FIT_PRICE, printFee, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL, SIZES, COLOURS, coloursForFit, sizesFor } from '../../shared/designSpec'
 
 /* ───────── Data ───────── */
 const fitOptions = [
@@ -96,6 +96,12 @@ export default function StudioPage() {
     setFit(next)
     if (!coloursForFit(next).some((c) => c.hex === selectedColor.hex)) setSelectedColor(COLOURS.white)
   }
+
+  // White oversized is not made in S: step up to M if S was selected
+  const sizeInStock = sizesFor(fit, selectedColor.hex)
+  useEffect(() => {
+    if (!sizeInStock.includes(selectedSize)) setSelectedSize('M')
+  }, [sizeInStock, selectedSize])
 
   // Pricing
   const basePrice = BASE_PRICES[printType] + FIT_PRICE[fit]
@@ -340,7 +346,7 @@ export default function StudioPage() {
                 <div className="sx__label"><label>Size</label></div>
                 <div className="tc-sizes">
                   {SIZES.map((size) => (
-                    <button key={size} type="button" className={`tc-size ${selectedSize === size ? 'is-on' : ''}`} aria-pressed={selectedSize === size} onClick={() => setSelectedSize(size)}>
+                    <button key={size} type="button" className={`tc-size ${selectedSize === size ? 'is-on' : ''}`} aria-pressed={selectedSize === size} disabled={!sizeInStock.includes(size)} title={sizeInStock.includes(size) ? undefined : 'Not available in this fit and colour'} onClick={() => setSelectedSize(size)}>
                       {size}
                     </button>
                   ))}

@@ -129,3 +129,8 @@ Admin view should rebuild the 3D shirt read-only from the saved spec (reuse `TSh
 - Free tiers: verify current limits on each pricing page before relying on them. Supabase was considered and NOT chosen.
 - Never put secrets or API keys in the React code; everything in the browser is public.
 - Never accept a price, payment status or admin role from the browser.
+
+### Checkout, COD and size rules (2026-10-05)
+- Checkout has NO payment-method section. The main button "Pay & place order" opens Razorpay (customer picks UPI/card/netbanking there). Below it a "Cash on delivery" button appears only when the whole bag is t-shirts (`COD_TYPES = ['tee','oversized']` in `src/data/products.js`, `codAllowed`). Hoodies/polos and ALL custom studio orders are online-only. The Worker enforces it (`priceCart` in `worker/src/catalog.js` refuses COD for other types); custom orders never take COD (`/api/orders` has no COD path). Reason: custom pieces cannot be resold. Policies/FAQ/terms/announcement/cart/product-page copy say so.
+- Signed-in customers: the checkout and studio-dialog email is read-only and the Worker overwrites `customer.email` with the session's verified email (`withAccountEmail` in `worker/src/index.js`) so the admin always knows who placed the order. Guests can still type an email.
+- Sizes: `sizesFor(fit, hex)` in `shared/designSpec.js` (white oversized has no S). Used by the studio (disabled button, auto-steps to M), product page, quick add, and validated server-side for shop and custom orders. Add further gaps in `UNAVAILABLE_SIZES`.

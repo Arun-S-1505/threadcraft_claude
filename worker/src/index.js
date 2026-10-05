@@ -1,13 +1,13 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { computePrice, validateDesignSpec, validateCustomer, SIZES, PLACEMENTS, PRINT_LABEL } from '../../shared/designSpec.js'
+import { computePrice, validateDesignSpec, validateCustomer, SIZES, sizesFor, PLACEMENTS, PRINT_LABEL } from '../../shared/designSpec.js'
 import { readUploads, MAX_REQUEST_BYTES } from './files.js'
 import { requireAdmin } from './auth.js'
 import { notifyNewOrder, notifyMessage } from './email.js'
 import { gatewayEnabled, createGatewayOrder } from './payments.js'
 import { priceCart } from './catalog.js'
 import { runMonthlyBackup } from './backup.js'
-import { userRoutes, cleanupAuth } from './users.js'
+import { userRoutes, cleanupAuth, getSessionUser } from './users.js'
 
 const app = new Hono()
 
@@ -81,7 +81,8 @@ app.post('/api/orders', rateLimit, async (c) => {
   } catch {
     return c.json({ error: 'Invalid order data' }, 400)
   }
-  const { spec, customer = {}, size } = payload
+  const { spec, size } = payload
+  const customer = await withAccountEmail(c, payload.customer)
   const quantity = Number(payload.quantity)
 
   const specErrors = validateDesignSpec(spec)
@@ -89,6 +90,7 @@ app.post('/api/orders', rateLimit, async (c) => {
   const custErrors = validateCustomer({ ...customer, quantity })
   if (Object.keys(custErrors).length) return c.json({ error: Object.values(custErrors)[0] }, 400)
   if (!SIZES.includes(size)) return c.json({ error: 'Invalid size' }, 400)
+  if (!sizesFor(spec.garment.fit, spec.garment.colour).includes(size)) return c.json({ error: `Size ${size} is not available in this fit and colour` }, 400)
 
   const up = await readUploads(form)
   if (up.error) return c.json({ error: up.error }, 400)
@@ -149,6 +151,15 @@ app.post('/api/orders', rateLimit, async (c) => {
   return c.json({ orderId: id, total, payment: await startPayment(c, id) }, 201)
 })
 
+// A signed-in customer's orders always carry the account's verified email, whatever the browser sent,
+// so the admin knows who really placed the order. Guests keep the email they typed.
+async function withAccountEmail(c, raw) {
+  const customer = { ...(raw && typeof raw === 'object' ? raw : {}) }
+  const user = await getSessionUser(c).catch(() => null)
+  if (user?.email) customer.email = user.email
+  return customer
+}
+
 // Creates the Razorpay order when the gateway is configured. A gateway hiccup must not lose the order:
 // the customer gets their order number and can retry payment from POST /api/pay.
 async function startPayment(c, id) {
@@ -169,7 +180,8 @@ app.get('/api/config', (c) => c.json({ onlinePayments: gatewayEnabled(c.env), co
 app.post('/api/shop-orders', rateLimit, async (c) => {
   const body = await c.req.json().catch(() => null)
   if (!body) return c.json({ error: 'Invalid request' }, 400)
-  const { customer = {}, payment, items } = body
+  const { payment, items } = body
+  const customer = await withAccountEmail(c, body.customer)
   const method = payment === 'cod' ? 'cod' : 'online'
   if (method === 'online' && !gatewayEnabled(c.env)) return c.json({ error: 'Online payment is not available yet. Please choose cash on delivery.' }, 400)
 

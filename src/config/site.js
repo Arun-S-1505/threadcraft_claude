@@ -43,7 +43,7 @@ export const SITE = {
   // Announcement bar (scrolling strip above the navbar)
   announcements: [
     'Free shipping on orders above ₹999',
-    'Cash on Delivery available',
+    'Cash on Delivery on all t-shirts',
     'Custom prints dispatched in 48 hours',
     '180 GSM regular · 240 GSM oversized',
   ],

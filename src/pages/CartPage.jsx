@@ -133,7 +133,7 @@ export default function CartPage() {
               </Link>
               <ul className="tc-summary__trust">
                 <li> Secure checkout</li>
-                <li> Cash on delivery available</li>
+                <li> Cash on delivery on t-shirts</li>
                 <li> {SITE.policy.returnDays}-day returns on stock items</li>
               </ul>
             </aside>

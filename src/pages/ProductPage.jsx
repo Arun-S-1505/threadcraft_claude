@@ -4,7 +4,7 @@ import Icon from '../components/ui/Icon'
 import Garment from '../components/ui/Garment'
 import Reveal from '../components/ui/Reveal'
 import ProductCard from '../components/ProductCard'
-import { SIZES, formatPrice, getProduct, relatedProducts } from '../data/products'
+import { SIZES, formatPrice, getProduct, relatedProducts, sizesForProduct, codAllowed } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 import { NotFoundPage } from './InfoPages'
@@ -39,6 +39,7 @@ export default function ProductPage() {
   if (!product) return <NotFoundPage />
 
   const chosen = color || product.colors[0]
+  const inStock = sizesForProduct(product, chosen.hex) // e.g. white oversized has no S
   const wished = isWished(product.id)
   const related = relatedProducts(product, 4)
 
@@ -72,7 +73,7 @@ export default function ProductPage() {
       title: 'Shipping & returns',
       body: (
         <p>
-          Dispatched within {SITE.policy.dispatchHours} hours. Free shipping over {formatPrice(SITE.policy.freeShippingThreshold)}, otherwise {formatPrice(SITE.policy.shippingFee)}. Cash on delivery is available on eligible pin codes. Unworn stock items can be returned within {SITE.policy.returnDays} days.{' '}
+          Dispatched within {SITE.policy.dispatchHours} hours. Free shipping over {formatPrice(SITE.policy.freeShippingThreshold)}, otherwise {formatPrice(SITE.policy.shippingFee)}. {codAllowed(product) ? 'Cash on delivery is available for t-shirts. ' : 'This item is paid online. '}Unworn stock items can be returned within {SITE.policy.returnDays} days.{' '}
           <Link to="/policies/returns" className="tc-link">Read the full policy</Link>.
         </p>
       ),
@@ -146,7 +147,10 @@ export default function ProductPage() {
                     title={c.name}
                     aria-label={c.name}
                     aria-pressed={chosen.hex === c.hex}
-                    onClick={() => setColor(c)}
+                    onClick={() => {
+                      setColor(c)
+                      if (size && !sizesForProduct(product, c.hex).includes(size)) setSize(null)
+                    }}
                   />
                 ))}
               </div>
@@ -162,6 +166,8 @@ export default function ProductPage() {
                     key={s}
                     className={`tc-size ${size === s ? 'is-on' : ''}`}
                     aria-pressed={size === s}
+                    disabled={!inStock.includes(s)}
+                    title={inStock.includes(s) ? undefined : `Not available in ${chosen.name}`}
                     onClick={() => {
                       setSize(s)
                       setError(false)
@@ -211,7 +217,7 @@ export default function ProductPage() {
 
             <ul className="tc-perks">
               <li> <span>Dispatched in {SITE.policy.dispatchHours} hours<small>Free over {formatPrice(SITE.policy.freeShippingThreshold)}</small></span></li>
-              <li> <span>Cash on delivery<small>Pay when it arrives</small></span></li>
+              {codAllowed(product) && <li> <span>Cash on delivery<small>Pay when it arrives</small></span></li>}
               <li> <span>{SITE.policy.returnDays}-day returns<small>On unworn stock items</small></span></li>
             </ul>
 

@@ -11,7 +11,7 @@ const readOrder = (state) => {
   }
 }
 
-const PAY_LABEL = { upi: 'UPI', card: 'Card', cod: 'Cash on delivery' }
+const PAY_LABEL = { online: 'Online (UPI, card or netbanking)', upi: 'Online (UPI)', card: 'Online (card)', cod: 'Cash on delivery' }
 
 export default function OrderConfirmationPage() {
   const { state } = useLocation()
