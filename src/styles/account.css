@@ -67,7 +67,11 @@ input.tc-input.tc-codeinput::placeholder { letter-spacing: 0.3em; }
 
 /* Google button, divider, method switch, password field */
 .tc-auth__google { margin-top: 28px; }
-.tc-google { display: flex; justify-content: center; min-height: 44px; }
+/* Our own Google button: fixed size, identical on every load */
+.tc-gbtn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 46px; background: #fff; border: 1px solid var(--line-strong); font-size: 14.5px; font-weight: 500; color: #3c4043; transition: border-color 0.2s, background 0.2s; }
+.tc-gbtn:hover { border-color: var(--ink); background: #fafafa; }
+.tc-gbtn:active { background: #f3f3f3; }
+.tc-gbtn--space { visibility: hidden; pointer-events: none; }
 .tc-or { position: relative; margin: 22px 0 0; text-align: center; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .tc-or::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line); }
 .tc-or span { position: relative; padding: 0 14px; background: var(--paper); }

@@ -196,11 +196,11 @@ function AuthFlow({ mode }) {
     if (digits.length === 6) verify(digits) // sign in as soon as the sixth digit is typed or pasted
   }
 
-  const onGoogle = async (credential) => {
+  const onGoogle = async (accessToken) => {
     setError('')
     setBusy(true)
     try {
-      finish((await api('/api/auth/google', { method: 'POST', json: { credential } })).user)
+      finish((await api('/api/auth/google', { method: 'POST', json: { accessToken } })).user)
     } catch (err) {
       setError(err.message)
       setBusy(false)
@@ -229,7 +229,7 @@ function AuthFlow({ mode }) {
 
             {googleSpace && (
               <div className="tc-auth__google">
-                {googleId ? <GoogleButton clientId={googleId} mode={mode} onCredential={onGoogle} onError={setError} /> : <div className="tc-google" />}
+                {googleId ? <GoogleButton clientId={googleId} mode={mode} onToken={onGoogle} onError={setError} /> : <div className="tc-gbtn tc-gbtn--space" />}
                 <p className="tc-or"><span>or use your email</span></p>
               </div>
             )}

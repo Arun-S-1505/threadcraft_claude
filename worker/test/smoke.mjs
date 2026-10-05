@@ -353,6 +353,52 @@ if (!REMOTE) {
   check('google: config tells the page whether to show the button', (await (await call('/api/config')).json()).googleClientId === CLIENT_ID && (await (await noGoogle.api('/api/config')).json()).googleClientId === null)
 }
 
+// Google sign-in through our own button (access token checked with Google)
+if (!REMOTE) {
+  const CLIENT_ID = 'test-client.apps.googleusercontent.com'
+  const acc = makeApi({ GOOGLE_CLIENT_ID: CLIENT_ID })
+  const call = (path, init = {}, cookie) => acc.api(path, { ...init, headers: { ...(init.headers || {}), ...(cookie ? { Cookie: cookie } : {}) } })
+  const gpost = (body, extra = {}) => call('/api/auth/google', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', ...extra } })
+  const calls = []
+  const tokens = {
+    'good-access-token-aaaaaaaaaaaa': { aud: CLIENT_ID, sub: '777', email: 'tina@example.com', email_verified: 'true', expires_in: '3500' },
+    'other-app-access-token-aaaaaaa': { aud: 'someone-elses-app.apps.googleusercontent.com', sub: '778', email: 'evil@example.com', email_verified: 'true', expires_in: '3500' },
+    'unverified-email-token-aaaaaaa': { aud: CLIENT_ID, sub: '779', email: 'nov@example.com', email_verified: 'false', expires_in: '3500' },
+    'expired-access-token-aaaaaaaaa': { aud: CLIENT_ID, sub: '780', email: 'old@example.com', email_verified: 'true', expires_in: '0' },
+  }
+  const realFetch = globalThis.fetch
+  globalThis.fetch = async (url, init) => {
+    const u = String(url)
+    if (u.startsWith('https://oauth2.googleapis.com/tokeninfo')) {
+      const tok = decodeURIComponent(u.split('access_token=')[1])
+      calls.push('tokeninfo')
+      return tokens[tok] ? new Response(JSON.stringify(tokens[tok]), { status: 200 }) : new Response('{"error":"invalid_token"}', { status: 400 })
+    }
+    if (u.startsWith('https://www.googleapis.com/oauth2/v3/userinfo')) {
+      calls.push('userinfo')
+      return new Response(JSON.stringify({ name: 'Tina Token' }), { status: 200 })
+    }
+    return realFetch(url, init)
+  }
+
+  const ok = await gpost({ accessToken: 'good-access-token-aaaaaaaaaaaa' })
+  const cookie = (ok.headers.get('set-cookie') || '').split(';')[0]
+  const me = (await (await call('/api/me', {}, cookie)).json()).user
+  check('google token: valid access token signs in and creates the account', ok.status === 200 && me?.email === 'tina@example.com' && me.name === 'Tina Token' && me.hasPassword === false, JSON.stringify(me))
+  check('google token: Google was asked to confirm the token', calls.includes('tokeninfo'))
+  check('google token: a token issued to ANOTHER app is refused', (await gpost({ accessToken: 'other-app-access-token-aaaaaaa' })).status === 401)
+  check('google token: an unverified email is refused', (await gpost({ accessToken: 'unverified-email-token-aaaaaaa' })).status === 401)
+  check('google token: an expired token is refused', (await gpost({ accessToken: 'expired-access-token-aaaaaaaaa' })).status === 401)
+  check('google token: an unknown token is refused', (await gpost({ accessToken: 'made-up-access-token-aaaaaaaaaa' })).status === 401)
+  check('google token: a too-short token is refused without asking Google', (await gpost({ accessToken: 'abc' })).status === 401)
+  check('google token: cross-site request is refused', (await gpost({ accessToken: 'good-access-token-aaaaaaaaaaaa' }, { Origin: 'https://evil.example' })).status === 403)
+  // signing in with Google links to the account that already holds that email, including its guest orders
+  const guest = await (await call('/api/shop-orders', { method: 'POST', body: JSON.stringify({ payment: 'cod', customer: { name: 'Tina', email: 'tina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#15171F', qty: 1 }] }), headers: { 'Content-Type': 'application/json' } })).json()
+  const orders = await (await call('/api/me/orders', {}, cookie)).json()
+  check('google token: guest orders for that email appear', orders.orders?.some((o) => o.id === guest.orderId))
+  globalThis.fetch = realFetch
+}
+
 // Admin must reject everyone when no valid Access login exists (production-like env)
 if (!REMOTE) {
   const { api: locked } = makeApi({ ACCESS_TEAM_DOMAIN: 'example.cloudflareaccess.com', ACCESS_AUD: 'abc' })

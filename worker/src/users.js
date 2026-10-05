@@ -10,7 +10,7 @@ import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { sendLoginCode } from './email.js'
 import { hashPassword, verifyPassword, dummyVerify, iterationsFor, passwordProblem } from './passwords.js'
-import { verifyGoogleIdToken } from './google.js'
+import { verifyGoogleIdToken, verifyGoogleAccessToken } from './google.js'
 
 const COOKIE = 'tc_session'
 const SESSION_DAYS = 30
@@ -211,7 +211,8 @@ export function userRoutes({ rateLimit }) {
   r.post('/auth/google', rateLimit, async (c) => {
     if (!c.env.GOOGLE_CLIENT_ID) return c.json({ error: 'Google sign-in is not available.' }, 503)
     const b = await c.req.json().catch(() => ({}))
-    const claims = await verifyGoogleIdToken(b.credential, c.env.GOOGLE_CLIENT_ID)
+    // Our own button sends an access token; an ID token (credential) is still accepted too
+    const claims = b.accessToken ? await verifyGoogleAccessToken(b.accessToken, c.env.GOOGLE_CLIENT_ID) : await verifyGoogleIdToken(b.credential, c.env.GOOGLE_CLIENT_ID)
     if (!claims) return c.json({ error: 'Google sign-in could not be verified. Please try again or use another method.' }, 401)
 
     const email = clip(claims.email, 200).toLowerCase()
