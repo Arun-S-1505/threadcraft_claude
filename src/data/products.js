@@ -18,20 +18,16 @@ export const codAllowed = (product) => COD_TYPES.includes(product.type)
 export const TYPES = {
   tee: { label: 'Regular Tee', group: 'T-Shirts' },
   oversized: { label: 'Oversized Tee', group: 'T-Shirts' },
-  hoodie: { label: 'Hoodie', group: 'Hoodies' },
-  polo: { label: 'Polo', group: 'Polos' },
 }
 
-export const CATEGORY_FILTERS = ['All', 'T-Shirts', 'Hoodies', 'Polos']
+export const CATEGORY_FILTERS = ['All', 'T-Shirts']
 
 /* ───────── Colours (only what we stock) ───────── */
 const C = { white: COLOURS.white, black: COLOURS.black, blue: COLOURS.blue, maroon: COLOURS.maroon }
-// Regular tees come in 4 colours; maroon is not made in oversized. (Hoodies and polos: black and white until confirmed.)
+// Regular tees come in 4 colours; maroon is not made in oversized. We only sell round-neck tees.
 const COLOURS_BY_TYPE = {
   tee: [C.black, C.white, C.blue, C.maroon],
   oversized: [C.black, C.white, C.blue],
-  hoodie: [C.black, C.white],
-  polo: [C.black, C.white],
 }
 
 /* ───────── Collections ───────── */
@@ -59,7 +55,7 @@ export const COLLECTIONS = [
     title: 'Anime',
     blurb: 'Moonlit gates and night-city graphics on heavyweight cotton.',
     art: 'torii',
-    garment: 'hoodie',
+    garment: 'tee',
     color: C.maroon.hex,
     tone: 'dark',
   },
@@ -77,6 +73,7 @@ export const COLLECTIONS = [
 /* ───────── Products ───────── */
 const products = [
   {
+    id: 1,
     slug: 'track-day-tee',
     name: 'Track Day Tee',
     collection: 'automotive',
@@ -87,6 +84,7 @@ const products = [
     blurb: 'A hand-drawn circuit map printed across the chest. Every corner numbered.',
   },
   {
+    id: 2,
     slug: 'redline-oversized-tee',
     name: 'Redline Oversized Tee',
     collection: 'automotive',
@@ -97,6 +95,7 @@ const products = [
     blurb: 'A tachometer pushed to the limit. Dropped shoulders, boxy oversized cut.',
   },
   {
+    id: 3,
     slug: 'apex-tee',
     name: 'Apex Tee',
     collection: 'automotive',
@@ -106,16 +105,7 @@ const products = [
     blurb: 'Mountain roads and the perfect line through the switchbacks.',
   },
   {
-    slug: 'night-drive-hoodie',
-    name: 'Night Drive Hoodie',
-    collection: 'automotive',
-    type: 'hoodie',
-    price: 1999,
-    art: 'grid',
-    tag: 'Limited',
-    blurb: 'Heavy fleece hoodie with a horizon-grid print that catches the light.',
-  },
-  {
+    id: 5,
     slug: 'needle-and-thread-tee',
     name: 'Needle & Thread Tee',
     collection: 'minimal',
@@ -126,6 +116,7 @@ const products = [
     blurb: 'Our signature mark. One needle, one thread, and a lot of care.',
   },
   {
+    id: 6,
     slug: 'wave-line-tee',
     name: 'Wave Line Tee',
     collection: 'minimal',
@@ -135,24 +126,7 @@ const products = [
     blurb: 'Five lines of ocean drawn in a single stroke.',
   },
   {
-    slug: 'less-but-better-hoodie',
-    name: 'Less But Better Hoodie',
-    collection: 'minimal',
-    type: 'hoodie',
-    price: 1799,
-    art: 'wordmark',
-    blurb: 'A clean typographic statement on brushed-back fleece.',
-  },
-  {
-    slug: 'everyday-polo',
-    name: 'Everyday Polo',
-    collection: 'minimal',
-    type: 'polo',
-    price: 999,
-    art: 'mark',
-    blurb: 'Piqué cotton polo with a small printed needle mark on the chest.',
-  },
-  {
+    id: 9,
     slug: 'midnight-torii-tee',
     name: 'Midnight Torii Tee',
     collection: 'anime',
@@ -163,15 +137,7 @@ const products = [
     blurb: 'A silent gate under a full moon. Soft-hand print, no cracking.',
   },
   {
-    slug: 'moonlit-gate-hoodie',
-    name: 'Moonlit Gate Hoodie',
-    collection: 'anime',
-    type: 'hoodie',
-    price: 2099,
-    art: 'torii',
-    blurb: 'Oversized heavyweight hoodie carrying our Torii artwork.',
-  },
-  {
+    id: 11,
     slug: 'orbit-club-tee',
     name: 'Orbit Club Tee',
     collection: 'streetwear',
@@ -181,6 +147,7 @@ const products = [
     blurb: 'A planet, a ring, a very good excuse to stay out late.',
   },
   {
+    id: 12,
     slug: 'solar-oversized-tee',
     name: 'Solar Oversized Tee',
     collection: 'streetwear',
@@ -190,6 +157,7 @@ const products = [
     blurb: 'Retro sunset stripes on a boxy heavyweight body.',
   },
   {
+    id: 13,
     slug: 'heavyweight-blank-tee',
     name: 'Heavyweight Blank Tee',
     collection: 'streetwear',
@@ -201,9 +169,8 @@ const products = [
   },
 ]
 
-export const PRODUCTS = products.map((p, i) => ({
+export const PRODUCTS = products.map((p) => ({
   ...p,
-  id: i + 1,
   colors: COLOURS_BY_TYPE[p.type],
   category: TYPES[p.type].group,
   typeLabel: TYPES[p.type].label,

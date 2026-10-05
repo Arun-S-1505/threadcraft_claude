@@ -89,7 +89,7 @@ function NewArrivals() {
 
 /* ───────── Custom studio ───────── */
 const STEPS = [
-  { title: 'Choose a garment', text: 'Tee, oversized, hoodie or polo, in every colour we stock.' },
+  { title: 'Choose a garment', text: 'Round-neck tee in regular or oversized fit, in every colour we stock.' },
   { title: 'Add your artwork', text: 'Upload an image or set your own text, then place and scale it.' },
   { title: 'Preview in 3D', text: 'Turn the garment around and check every placement before you pay.' },
   { title: 'We print and ship', text: `Printed and dispatched within ${SITE.policy.dispatchHours} hours of your order.` },
@@ -193,7 +193,7 @@ const FAQS = [
   },
   {
     q: 'Do you offer cash on delivery?',
-    a: 'Yes, for t-shirts from the collection. At checkout you can pay online (UPI, card or netbanking) or choose cash on delivery. Custom studio orders are always paid in advance, and hoodies and polos are paid online.',
+    a: 'Yes, for t-shirts from the collection. At checkout you can pay online (UPI, card or netbanking) or choose cash on delivery. Custom studio orders are always paid online in advance.',
   },
   {
     q: 'How do I pick the right size?',

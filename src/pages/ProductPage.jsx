@@ -62,7 +62,7 @@ export default function ProductPage() {
           {(product.type === 'tee' || product.type === 'oversized') && (
             <li>{product.type === 'oversized' ? SITE.policy.gsmOversized : SITE.policy.gsmRegular} GSM, 100% cotton</li>
           )}
-          <li>{product.type === 'oversized' ? 'Boxy oversized fit with dropped shoulders' : product.type === 'hoodie' ? 'Heavyweight fleece, ribbed cuffs and hem' : product.type === 'polo' ? 'Classic polo collar and placket' : 'Regular fit, ribbed crew neck'}</li>
+          <li>{product.type === 'oversized' ? 'Boxy oversized fit with dropped shoulders' : 'Regular fit, round neck with ribbed collar'}</li>
           <li>{product.art ? 'High-resolution direct-to-garment print' : 'Blank garment, ready for your design in the studio'}</li>
           <li>Printed to order in India</li>
         </ul>
@@ -73,7 +73,7 @@ export default function ProductPage() {
       title: 'Shipping & returns',
       body: (
         <p>
-          Dispatched within {SITE.policy.dispatchHours} hours. Free shipping over {formatPrice(SITE.policy.freeShippingThreshold)}, otherwise {formatPrice(SITE.policy.shippingFee)}. {codAllowed(product) ? 'Cash on delivery is available for t-shirts. ' : 'This item is paid online. '}Unworn stock items can be returned within {SITE.policy.returnDays} days.{' '}
+          Dispatched within {SITE.policy.dispatchHours} hours. Free shipping over {formatPrice(SITE.policy.freeShippingThreshold)}, otherwise {formatPrice(SITE.policy.shippingFee)}. Cash on delivery is available on all t-shirts. Unworn stock items can be returned within {SITE.policy.returnDays} days.{' '}
           <Link to="/policies/returns" className="tc-link">Read the full policy</Link>.
         </p>
       ),

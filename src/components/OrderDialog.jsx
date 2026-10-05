@@ -4,6 +4,7 @@ import Icon from './ui/Icon'
 import { formatPrice } from '../data/products'
 import { prepareOrder, submitOrder } from '../lib/orders'
 import { useAuth } from '../store/AuthContext'
+import { rememberDetails } from '../lib/remember'
 import { openCheckout } from '../lib/razorpay'
 import { MAX_QUANTITY, MIN_IMAGE_SIDE, unitPrice, validateCustomer } from '../../shared/designSpec'
 
@@ -11,8 +12,8 @@ const EMPTY = { name: '', email: '', phone: '', address: '', city: '', pincode: 
 
 export default function OrderDialog({ order, getCapture, onClose }) {
   const { fit, colour, size, printType, designList } = order
-  const { user } = useAuth()
-  const [form, setForm] = useState(() => (user ? { ...EMPTY, name: user.name || '', email: user.email, phone: user.phone || '', address: user.address || '', city: user.city || '', pincode: user.pincode || '' } : EMPTY))
+  const { user, setUser } = useAuth()
+  const [form, setForm] = useState(() => (user ? { ...EMPTY, email: user.email, ...(user.phone || user.address ? { name: user.name || '' } : {}), phone: user.phone || '', address: user.address || '', city: user.city || '', pincode: user.pincode || '' } : EMPTY))
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('form') // form | sending | done
   const [formError, setFormError] = useState('')
@@ -58,6 +59,7 @@ export default function OrderDialog({ order, getCapture, onClose }) {
         size,
         quantity: qty,
       })
+      rememberDetails(user, setUser, { name: form.name, phone: form.phone, address: form.address, city: form.city, pincode: form.pincode })
       let pay = res.payment?.gatewayOrderId ? 'pending' : res.payment?.error ? 'failed' : 'invoice'
       if (pay === 'pending') {
         setStatus('paying')

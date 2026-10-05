@@ -9,6 +9,7 @@ import { useAuth } from '../store/AuthContext'
 import { STATES } from '../data/india'
 import { api } from '../lib/api'
 import { openCheckout } from '../lib/razorpay'
+import { rememberDetails } from '../lib/remember'
 
 const initial = { email: '', phone: '', firstName: '', lastName: '', address: '', apartment: '', city: '', state: 'Tamil Nadu', pin: '', notes: '' }
 
@@ -17,7 +18,7 @@ export default function CheckoutPage() {
   const { lines, count, subtotal, shipping, gstIncluded, total, clearCart } = useStore()
   const [form, setForm] = useState(initial)
   const [errors, setErrors] = useState({})
-  const { user } = useAuth()
+  const { user, setUser } = useAuth()
   const prefilled = useRef(false)
   const [cfg, setCfg] = useState(null) // what the server can accept: { onlinePayments, cod }
   const [placing, setPlacing] = useState(false)
@@ -36,6 +37,9 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!user || prefilled.current) return
     prefilled.current = true
+    // First-time customers (nothing saved yet) start with empty fields; returning ones are pre-filled
+    const returning = !!(user.phone || user.address)
+    if (!returning) return setForm((f) => ({ ...f, email: user.email }))
     const [firstName = '', ...rest] = (user.name || '').split(' ')
     setForm((f) => ({
       ...f,
@@ -102,6 +106,16 @@ export default function CheckoutPage() {
         },
       })
 
+      // Remember the details on the account so the next order is pre-filled
+      rememberDetails(user, setUser, {
+        name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+        phone: form.phone.trim(),
+        address: [form.address.trim(), form.apartment.trim()].filter(Boolean).join(', '),
+        city: form.city.trim(),
+        state: form.state,
+        pincode: form.pin.trim(),
+      })
+
       let payState = method === 'cod' ? 'cod' : 'pending'
       if (res.payment?.gatewayOrderId) {
         // "completed" only means the customer finished; the server confirms payment via webhook
@@ -134,8 +148,8 @@ export default function CheckoutPage() {
     }
   }
 
-  const field = (name, label, props = {}) => (
-    <div className={`tc-formfield ${props.wide ? 'is-wide' : ''}`}>
+  const field = (name, label, { wide, ...props } = {}) => (
+    <div className={`tc-formfield ${wide ? 'is-wide' : ''}`}>
       <label htmlFor={name}>{label}</label>
       <input
         id={name}
@@ -290,7 +304,6 @@ export default function CheckoutPage() {
               </button>
             )}
             {cfg && !online && !codOk && <p className="tc-error" role="alert">Online payment is not available yet, and cash on delivery is only offered for t-shirts.</p>}
-            {online && !codOk && cfg && <p className="tc-hint">Cash on delivery is available only when your bag has t-shirts only. Hoodies and polos are paid online.</p>}
             {online && codOk && <p className="tc-hint">Pay online now (UPI, card, netbanking), or pay in cash when it arrives.</p>}
             <ul className="tc-summary__trust">
               <li> Dispatched in {SITE.policy.dispatchHours} hours</li>

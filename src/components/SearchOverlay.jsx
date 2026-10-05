@@ -4,7 +4,7 @@ import Icon from './ui/Icon'
 import Garment from './ui/Garment'
 import { COLLECTIONS, PRODUCTS, formatPrice } from '../data/products'
 
-const SUGGESTIONS = ['Oversized', 'Hoodie', 'Automotive', 'Minimal', 'Anime']
+const SUGGESTIONS = ['Oversized', 'Regular', 'Automotive', 'Minimal', 'Anime']
 
 export default function SearchOverlay({ open, onClose }) {
   const [q, setQ] = useState('')
@@ -38,7 +38,7 @@ export default function SearchOverlay({ open, onClose }) {
       <div className="tc-search__panel">
         <div className="tc-search__bar">
           <Icon name="search" size={22} />
-          <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tees, hoodies, collections…" aria-label="Search products" />
+          <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tees and collections…" aria-label="Search products" />
           <button className="tc-iconbtn" onClick={onClose} aria-label="Close search">
             <Icon name="x" size={22} />
           </button>

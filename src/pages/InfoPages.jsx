@@ -104,7 +104,7 @@ const POLICIES = {
       ['Dispatch time', `Orders are printed and dispatched within ${SITE.policy.dispatchHours} hours of confirmation. Bulk and corporate orders are scheduled with you in advance.`],
       ['Shipping charges', `Shipping is free on orders above ${formatPrice(SITE.policy.freeShippingThreshold)}. Below that, a flat fee of ${formatPrice(SITE.policy.shippingFee)} applies.`],
       ['Delivery time', 'Delivery typically takes a few working days after dispatch depending on your location. You will receive tracking details by email once your order ships.'],
-      ['Cash on delivery', 'Cash on delivery is available only for t-shirts bought from the collection. Custom studio orders are made to order and are always paid online in advance, and hoodies and polos are paid online as well.'],
+      ['Cash on delivery', 'Cash on delivery is available only for t-shirts bought from the collection. Custom studio orders are made to order and are always paid online in advance.'],
     ],
   },
   returns: {
