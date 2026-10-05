@@ -112,7 +112,7 @@ const jpost = (path, body, fn = api) => fn(path, { method: 'POST', body: JSON.st
 
 // Shop (cart) orders: prices come from the catalog, never from the browser
 const shopCustomer = { name: 'Test Buyer', email: 'shop@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }
-const line = { productId: 1, size: 'M', color: '#15171F', qty: 2 }
+const line = { productId: 1, size: 'M', color: '#1A1A1A', qty: 2 }
 const shop = await (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, price: 1 }], total: 1 })).json()
 check('shop COD order placed', !!shop.orderId && shop.method === 'cod', JSON.stringify(shop))
 check('shop price from catalog (899 x 2 = 1798, free shipping)', shop.subtotal === 1798 && shop.total === 1798, JSON.stringify(shop))
@@ -212,7 +212,7 @@ if (!REMOTE) {
   check('profile: needs sign-in', (await patchMe({ name: 'Asha K' })).status === 401)
 
   // orders placed as a guest with the same email appear under the account
-  const guestShop = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'test@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#15171F', qty: 2 }] })).json()
+  const guestShop = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'test@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#1A1A1A', qty: 2 }] })).json()
   const guestCustom = await (await acc.api('/api/orders', { method: 'POST', body: orderForm() })).json()
   const list = await (await call('/api/me/orders', {}, sess)).json()
   check('orders: lists guest orders for the verified email', list.orders?.length === 2 && list.orders.some((o) => o.id === guestShop.orderId && o.summary.includes('Track Day Tee × 2')), JSON.stringify(list).slice(0, 300))
@@ -343,7 +343,7 @@ if (!REMOTE) {
   check('google: cross-site request is refused', (await call('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential: await makeToken(good) }), headers: { 'Content-Type': 'application/json', Origin: 'https://evil.example' } })).status === 403)
 
   // Google sign-in links to the account that already holds the same email (and its guest orders)
-  const guest = await (await jpost('/api/shop-orders', { payment: 'cod', customer: { name: 'Gina', email: 'gina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#15171F', qty: 1 }] })).json()
+  const guest = await (await jpost('/api/shop-orders', { payment: 'cod', customer: { name: 'Gina', email: 'gina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#1A1A1A', qty: 1 }] })).json()
   const gOrders = await (await call('/api/me/orders', {}, gCookie)).json()
   check('google: guest orders for that email appear', gOrders.orders?.some((o) => o.id === guest.orderId))
   globalThis.fetch = realFetch
@@ -393,10 +393,26 @@ if (!REMOTE) {
   check('google token: a too-short token is refused without asking Google', (await gpost({ accessToken: 'abc' })).status === 401)
   check('google token: cross-site request is refused', (await gpost({ accessToken: 'good-access-token-aaaaaaaaaaaa' }, { Origin: 'https://evil.example' })).status === 403)
   // signing in with Google links to the account that already holds that email, including its guest orders
-  const guest = await (await call('/api/shop-orders', { method: 'POST', body: JSON.stringify({ payment: 'cod', customer: { name: 'Tina', email: 'tina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#15171F', qty: 1 }] }), headers: { 'Content-Type': 'application/json' } })).json()
+  const guest = await (await call('/api/shop-orders', { method: 'POST', body: JSON.stringify({ payment: 'cod', customer: { name: 'Tina', email: 'tina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 1, size: 'M', color: '#1A1A1A', qty: 1 }] }), headers: { 'Content-Type': 'application/json' } })).json()
   const orders = await (await call('/api/me/orders', {}, cookie)).json()
   check('google token: guest orders for that email appear', orders.orders?.some((o) => o.id === guest.orderId))
   globalThis.fetch = realFetch
+}
+
+// Sizes and colours we actually sell
+if (!REMOTE) {
+  const spec2 = (fit, colour) => buildDesignSpec({ fit, colour, printType: 'dtf', designList }, () => resolved, { files })
+  const place = async (fit, colour) => (await post(orderForm({ s: spec2(fit, colour) }))).status
+  check('colours: maroon is accepted in the regular fit', (await place('regular', '#6E0F1E')) === 201)
+  check('colours: maroon is refused in the oversized fit', (await place('oversized', '#6E0F1E')) === 400)
+  check('colours: royal blue works in oversized', (await place('oversized', '#0536A8')) === 201)
+  check('colours: a colour we do not stock is refused', (await place('regular', '#CDB99A')) === 400)
+  check('sizes: XXL is refused for custom orders', (await post(orderForm({ size: 'XXL' }))).status === 400)
+  check('sizes: XL is accepted for custom orders', (await post(orderForm({ size: 'XL' }))).status === 201)
+  const shopLine = { productId: 1, size: 'XXL', color: '#1A1A1A', qty: 1 }
+  check('sizes: XXL is refused in the shop', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [shopLine] })).status === 400)
+  check('colours: maroon oversized tee is refused in the shop', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 2, size: 'M', color: '#6E0F1E', qty: 1 }] })).status === 400)
+  check('colours: maroon regular tee is accepted in the shop', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 1, size: 'M', color: '#6E0F1E', qty: 1 }] })).status === 201)
 }
 
 // Admin must reject everyone when no valid Access login exists (production-like env)

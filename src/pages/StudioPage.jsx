@@ -5,23 +5,14 @@ import Navbar from '../components/Navbar'
 import Icon from '../components/ui/Icon'
 import OrderDialog from '../components/OrderDialog'
 import { formatPrice } from '../data/products'
-import { BASE_PRICES, FIT_PRICE, printFee, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL } from '../../shared/designSpec'
+import { BASE_PRICES, FIT_PRICE, printFee, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL, SIZES, COLOURS, coloursForFit } from '../../shared/designSpec'
 
 /* ───────── Data ───────── */
-const colorOptions = [
-  { name: 'White', hex: '#FFFFFF' },
-  { name: 'Onyx Black', hex: '#1A1A1A' },
-  { name: 'Slate Navy', hex: '#1E293B' },
-  { name: 'Royal Blue', hex: '#0051d5' },
-  { name: 'Silver Mist', hex: '#D1D5DB' },
-]
-
 const fitOptions = [
   { value: 'regular', label: 'Regular fit', gsm: 180, name: 'Regular Fit Tee' },
   { value: 'oversized', label: 'Oversized', gsm: 240, name: 'Oversized Tee' },
 ]
 
-const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL']
 
 const placementOptions = [
   { label: 'Front Chest', value: 'front', icon: 'indeterminate_check_box' },
@@ -61,7 +52,7 @@ export default function StudioPage() {
   const [activeTab, setActiveTab] = useState('select')
 
   // Product state
-  const [selectedColor, setSelectedColor] = useState(colorOptions[0])
+  const [selectedColor, setSelectedColor] = useState(COLOURS.white)
   const [fit, setFit] = useState('regular')
   const [selectedSize, setSelectedSize] = useState('M')
   const printType = 'dtf' // the only print method we offer
@@ -98,6 +89,13 @@ export default function StudioPage() {
     const t = setTimeout(() => designSecRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120)
     return () => clearTimeout(t)
   }, [activeDesignId])
+
+  // Colours depend on the fit (maroon is regular fit only). Switching fit keeps the colour when it exists there, else falls back to white.
+  const availableColours = coloursForFit(fit)
+  const changeFit = (next) => {
+    setFit(next)
+    if (!coloursForFit(next).some((c) => c.hex === selectedColor.hex)) setSelectedColor(COLOURS.white)
+  }
 
   // Pricing
   const basePrice = BASE_PRICES[printType] + FIT_PRICE[fit]
@@ -322,7 +320,7 @@ export default function StudioPage() {
                 <div className="sx__label"><label>Fit</label><em>{fitInfo.gsm} GSM</em></div>
                 <div className="sx-seg" role="group" aria-label="Fit">
                   {fitOptions.map((f) => (
-                    <button key={f.value} type="button" className={fit === f.value ? 'is-on' : ''} aria-pressed={fit === f.value} onClick={() => setFit(f.value)}>
+                    <button key={f.value} type="button" className={fit === f.value ? 'is-on' : ''} aria-pressed={fit === f.value} onClick={() => changeFit(f.value)}>
                       {f.label}
                     </button>
                   ))}
@@ -332,7 +330,7 @@ export default function StudioPage() {
               <div className="sx__field">
                 <div className="sx__label"><label>Colour</label><em>{selectedColor.name}</em></div>
                 <div className="tc-swatches tc-swatches--wrap">
-                  {colorOptions.map((color) => (
+                  {availableColours.map((color) => (
                     <button key={color.hex} type="button" className={`tc-swatch tc-swatch--lg ${selectedColor.hex === color.hex ? 'is-active' : ''}`} style={{ '--sw': color.hex }} onClick={() => setSelectedColor(color)} title={color.name} aria-label={color.name} aria-pressed={selectedColor.hex === color.hex} />
                   ))}
                 </div>
@@ -341,7 +339,7 @@ export default function StudioPage() {
               <div className="sx__field">
                 <div className="sx__label"><label>Size</label></div>
                 <div className="tc-sizes">
-                  {sizeOptions.map((size) => (
+                  {SIZES.map((size) => (
                     <button key={size} type="button" className={`tc-size ${selectedSize === size ? 'is-on' : ''}`} aria-pressed={selectedSize === size} onClick={() => setSelectedSize(size)}>
                       {size}
                     </button>

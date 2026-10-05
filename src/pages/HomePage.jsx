@@ -23,7 +23,7 @@ function Hero() {
         </div>
         <div className="tc-hero__visual">
           <div className="tc-hero__panel">
-            <Garment type="tee" color={COLOR_LIB.onyx.hex} art="needle" title="ThreadCraft signature tee" />
+            <Garment type="tee" color={COLOR_LIB.black.hex} art="needle" title="ThreadCraft signature tee" />
           </div>
         </div>
       </div>
@@ -100,7 +100,7 @@ function StudioSection() {
     <section className="tc-studio" aria-labelledby="studio-h">
       <div className="tc-container tc-studio__grid">
         <div className="tc-studio__art" aria-hidden="true">
-          <Garment type="oversized" color={COLOR_LIB.bone.hex} art="wordmark" />
+          <Garment type="oversized" color={COLOR_LIB.white.hex} art="wordmark" />
         </div>
         <div className="tc-studio__copy">
           <p className="tc-eyebrow">Custom studio</p>
@@ -193,11 +193,11 @@ const FAQS = [
   },
   {
     q: 'Do you offer cash on delivery?',
-    a: 'Yes. Cash on delivery is available on eligible pin codes, alongside UPI and card payments.',
+    a: 'Yes, for items from the shop. Cash on delivery is available alongside UPI and card payments. Custom studio orders are paid in advance.',
   },
   {
     q: 'How do I pick the right size?',
-    a: 'Each product page has a size guide with chest and length measurements in inches. Our oversized tees are cut boxy, so most people wear their usual size for a relaxed fit, or size down for a closer fit.',
+    a: 'Sizes run from S to XL. Our oversized tees are cut boxy, so most people wear their usual size for a relaxed fit, or size down for a closer fit. Not sure? Message us and we will help.',
   },
 ]
 

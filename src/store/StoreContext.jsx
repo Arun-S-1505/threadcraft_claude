@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { SITE } from '../config/site'
-import { getProductById } from '../data/products'
+import { getProductById, SIZES } from '../data/products'
 
 /**
  * Cart + wishlist state, persisted to localStorage.
@@ -88,7 +88,7 @@ export function StoreProvider({ children }) {
   const value = useMemo(() => {
     const lines = cart
       .map((l) => ({ ...l, product: getProductById(l.productId) }))
-      .filter((l) => l.product)
+      .filter((l) => l.product && SIZES.includes(l.size) && l.product.colors.some((c) => c.hex === l.color))
     const count = lines.reduce((n, l) => n + l.qty, 0)
     const subtotal = lines.reduce((n, l) => n + l.product.price * l.qty, 0)
     const { freeShippingThreshold, shippingFee, gstRate } = SITE.policy

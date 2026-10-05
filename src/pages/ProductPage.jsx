@@ -4,7 +4,7 @@ import Icon from '../components/ui/Icon'
 import Garment from '../components/ui/Garment'
 import Reveal from '../components/ui/Reveal'
 import ProductCard from '../components/ProductCard'
-import { SIZES, SIZE_GUIDE, formatPrice, getProduct, relatedProducts } from '../data/products'
+import { SIZES, formatPrice, getProduct, relatedProducts } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 import { NotFoundPage } from './InfoPages'
@@ -14,49 +14,6 @@ const VIEWS = [
   { id: 'back', label: 'Back' },
   { id: 'detail', label: 'Print detail' },
 ]
-
-function SizeGuide({ onClose }) {
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-  return (
-    <div className="tc-modal" role="dialog" aria-modal="true" aria-label="Size guide">
-      <div className="tc-modal__scrim" onClick={onClose} />
-      <div className="tc-modal__card">
-        <header>
-          <h2>Size guide</h2>
-          <button className="tc-iconbtn" onClick={onClose} aria-label="Close size guide">
-            <Icon name="x" size={22} />
-         </button>
-        </header>
-        <p>Garment measurements in inches, laid flat. If you're between sizes, size up for a relaxed fit.</p>
-        <table className="tc-table">
-          <thead>
-            <tr>
-              <th>Size</th>
-              <th>Chest</th>
-              <th>Length</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SIZE_GUIDE.map((r) => (
-              <tr key={r.size}>
-                <td>{r.size}</td>
-                <td>{r.chest}"</td>
-                <td>{r.length}"</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="tc-modal__tip">
- Measure a tee you already love, laid flat from armpit to armpit, and compare it with the chest column.
-        </p>
-      </div>
-    </div>
-  )
-}
 
 export default function ProductPage() {
   const { slug } = useParams()
@@ -69,7 +26,6 @@ export default function ProductPage() {
   const [qty, setQty] = useState(1)
   const [view, setView] = useState('front')
   const [error, setError] = useState(false)
-  const [guide, setGuide] = useState(false)
   const [open, setOpen] = useState('details')
 
   useEffect(() => {
@@ -199,9 +155,6 @@ export default function ProductPage() {
             <div className="tc-field" id="size-group">
               <div className="tc-field__label">
                 <span>Size</span>
-                <button className="tc-link" onClick={() => setGuide(true)}>
- Size guide
-               </button>
               </div>
               <div className={`tc-sizes ${error ? 'is-error' : ''}`} role="group" aria-label="Size">
                 {SIZES.map((s) => (
@@ -321,7 +274,6 @@ export default function ProductPage() {
        </button>
       </div>
 
-      {guide && <SizeGuide onClose={() => setGuide(false)} />}
     </div>
   )
 }

@@ -6,18 +6,28 @@
 export const SCHEMA_VERSION = 1
 
 export const FITS = { regular: { gsm: 180 }, oversized: { gsm: 240 } }
-export const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
+export const SIZES = ['S', 'M', 'L', 'XL'] // we do not sell XXL
 export const PRINT_TYPES = ['dtf']
+// The colours we actually stock (hex approximates the real fabric; see the product photos).
+export const COLOURS = {
+  white: { name: 'White', hex: '#FFFFFF' },
+  black: { name: 'Black', hex: '#1A1A1A' },
+  blue: { name: 'Royal Blue', hex: '#0536A8' },
+  maroon: { name: 'Maroon', hex: '#6E0F1E' },
+}
+// Maroon is only available in the regular fit
+export const FIT_COLOURS = {
+  regular: ['white', 'black', 'blue', 'maroon'],
+  oversized: ['white', 'black', 'blue'],
+}
+export const coloursForFit = (fit) => (FIT_COLOURS[fit] || []).map((k) => COLOURS[k])
+// Names for display, including colours from earlier test orders that are no longer offered
+const LEGACY_NAMES = { '#1E293B': 'Slate Navy', '#D1D5DB': 'Silver Mist', '#0051d5': 'Royal Blue', '#15171F': 'Black' }
+export const colourName = (hex) => Object.values(COLOURS).find((c) => c.hex.toLowerCase() === String(hex).toLowerCase())?.name || LEGACY_NAMES[hex] || hex
+
 export const PRINT_LABEL = { dtf: 'DTF (Direct to Film)' }
 export const PLACEMENTS = ['front', 'back', 'left_sleeve', 'right_sleeve']
 export const FONTS = ['Geist', 'Inter', 'serif', 'monospace']
-export const SHIRT_COLOURS = {
-  '#FFFFFF': 'White',
-  '#1A1A1A': 'Onyx Black',
-  '#1E293B': 'Slate Navy',
-  '#0051d5': 'Royal Blue',
-  '#D1D5DB': 'Silver Mist',
-}
 
 // Prices in INR (placeholders: replace with real prices)
 export const BASE_PRICES = { dtf: 899 }
@@ -107,7 +117,7 @@ export function validateDesignSpec(spec) {
   const g = spec.garment || {}
   if (!FITS[g.fit]) errs.push('Invalid fit')
   if (!PRINT_TYPES.includes(g.printType)) errs.push('Invalid print type')
-  if (!SHIRT_COLOURS[g.colour]) errs.push('Invalid shirt colour')
+  if (!coloursForFit(g.fit).some((c) => c.hex === g.colour)) errs.push('That shirt colour is not available in this fit')
   const items = Array.isArray(spec.items) ? spec.items : []
   if (items.length === 0) errs.push('Add at least one design to the garment')
   if (items.length > MAX_ITEMS) errs.push(`Too many design items (max ${MAX_ITEMS})`)

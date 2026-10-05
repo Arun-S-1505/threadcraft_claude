@@ -5,7 +5,7 @@ import { api } from '../lib/api'
 const OFFERS = [
   { title: 'Custom prints', text: 'Your logo or artwork, placed consistently across every piece in the order.' },
   { title: 'Consistent quality', text: `The same cotton and print process as our own collections, in ${SITE.policy.gsmRegular} GSM regular fit or ${SITE.policy.gsmOversized} GSM oversized.` },
-  { title: 'Sizing across teams', text: 'Full size run from S to XXL, with a size guide for your team to check.' },
+  { title: 'Sizing across teams', text: 'Sizes from S to XL, so everyone on the team gets a good fit.' },
   { title: 'Clear timelines', text: 'A quote and production schedule confirmed before anything is printed.' },
 ]
 

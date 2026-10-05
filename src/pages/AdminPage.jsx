@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import TShirt3D from '../components/TShirt3D'
 import { api, apiUrl } from '../lib/api'
 import { formatPrice } from '../data/products'
-import { SHIRT_COLOURS, PRINT_LABEL } from '../../shared/designSpec'
+import { colourName, PRINT_LABEL } from '../../shared/designSpec'
 
 /**
  * Owner-only area. The real protection is Cloudflare Access in front of this page plus the
@@ -249,7 +249,7 @@ function OrderDetail({ id, onBack, onDenied }) {
         <section className="ad__card ad__design">
           <h2>Design</h2>
           <p>
-            {spec.garment.fit} tee, {spec.garment.gsm} GSM, {SHIRT_COLOURS[spec.garment.colour]} · size {order.size} · qty {order.quantity} · {PRINT_LABEL[spec.garment.printType] || spec.garment.printType.toUpperCase()}
+            {spec.garment.fit} tee, {spec.garment.gsm} GSM, {colourName(spec.garment.colour)} · size {order.size} · qty {order.quantity} · {PRINT_LABEL[spec.garment.printType] || spec.garment.printType.toUpperCase()}
           </p>
 
           <div className="ad__two">

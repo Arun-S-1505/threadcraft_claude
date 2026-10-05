@@ -2,8 +2,8 @@
 // Nothing the browser sends (prices, totals) is trusted; only product ids, sizes, colours and quantities.
 import { getProductById } from '../../src/data/products.js'
 import { SITE } from '../../src/config/site.js'
+import { SIZES } from '../../shared/designSpec.js'
 
-const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
 export const MAX_LINE_QTY = 10
 export const MAX_LINES = 20
 
