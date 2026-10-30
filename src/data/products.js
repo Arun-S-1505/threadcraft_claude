@@ -78,6 +78,7 @@ const products = [
   {
     id: 102,
     slug: 'naruto-manga-tee',
+    hidden: true,
     name: 'Naruto Manga Tee',
     collection: 'anime',
     type: 'tee',
@@ -87,6 +88,7 @@ const products = [
   {
     id: 103,
     slug: 'gear-5-tee',
+    hidden: true,
     name: 'Gear 5 Tee',
     collection: 'anime',
     type: 'tee',
@@ -96,6 +98,7 @@ const products = [
   {
     id: 104,
     slug: 'tanjiro-brushstroke-tee',
+    hidden: true,
     name: 'Tanjiro Brushstroke Tee',
     collection: 'anime',
     type: 'tee',
@@ -105,6 +108,7 @@ const products = [
   {
     id: 105,
     slug: 'zenitsu-lightning-tee',
+    hidden: true,
     name: 'Zenitsu Lightning Tee',
     collection: 'anime',
     type: 'tee',
@@ -186,6 +190,7 @@ const products = [
   {
     id: 114,
     slug: 'porsche-gt3-rs-tee',
+    hidden: true,
     name: 'Porsche GT3 RS Tee',
     collection: 'automotive',
     type: 'tee',
@@ -195,6 +200,7 @@ const products = [
   {
     id: 115,
     slug: 'mercedes-amg-gt-tee',
+    hidden: true,
     name: 'Mercedes-AMG GT Tee',
     collection: 'automotive',
     type: 'tee',
@@ -204,6 +210,7 @@ const products = [
   {
     id: 116,
     slug: 'bugatti-chiron-tee',
+    hidden: true,
     name: 'Bugatti Chiron Tee',
     collection: 'automotive',
     type: 'tee',
@@ -213,6 +220,7 @@ const products = [
   {
     id: 117,
     slug: 'max-verstappen-tee',
+    hidden: true,
     name: 'Max Verstappen Tee',
     collection: 'automotive',
     type: 'tee',
@@ -222,6 +230,7 @@ const products = [
   {
     id: 118,
     slug: 'sergio-perez-tee',
+    hidden: true,
     name: 'Sergio Pérez Tee',
     collection: 'automotive',
     type: 'tee',
@@ -266,7 +275,10 @@ const products = [
   },
 ]
 
-export const PRODUCTS = products.map((p) => ({
+// `hidden: true` = held back from the site (not listed, not purchasable). These designs use other companies' brands or
+// characters; their photos are parked in hold/products/ (outside the deployed public/ folder). To release one: get a licence,
+// move its folder back to public/products/ and delete the flag.
+export const PRODUCTS = products.filter((p) => !p.hidden).map((p) => ({
   ...p,
   colors: coloursForFit('regular'), // superset; the colours per fit come from coloursForFit(fit)
   price: SHOP_PRICES.oversized, // default fit; regular fit is cheaper (SHOP_PRICES.regular)
