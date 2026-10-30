@@ -149,7 +149,7 @@ const WHY = [
   { title: 'Fabric', text: `${SITE.policy.gsmRegular} GSM regular fit and ${SITE.policy.gsmOversized} GSM oversized, in 100% cotton.` },
   { title: 'Printing', text: 'High-resolution digital printing for vivid, durable colour.' },
   { title: 'Dispatch', text: `Custom pieces are printed and shipped within ${SITE.policy.dispatchHours} hours.` },
-  { title: 'Returns', text: `${SITE.policy.returnDays}-day returns on stock items. Free reprint if we get a custom print wrong.` },
+  { title: 'Returns', text: `${SITE.policy.returnDays}-day returns on collection tees. Custom studio tees are made to order and cannot be returned; we reprint any we get wrong.` },
 ]
 
 function Why() {
@@ -206,7 +206,7 @@ const FAQS = [
   },
   {
     q: 'What is your return policy?',
-    a: `Stock items can be returned within ${SITE.policy.returnDays} days if unworn and unwashed. Custom-designed pieces are made just for you, so we accept returns only for defects or print errors, and we reprint them free.`,
+    a: `T-shirts from the collection can be returned within ${SITE.policy.returnDays} days if unworn and unwashed. Custom studio tees cannot be returned or exchanged, because each one is printed to order from your design. If a custom tee arrives damaged or misprinted, we reprint or refund it at no cost.`,
   },
   {
     q: 'Do you offer cash on delivery?',

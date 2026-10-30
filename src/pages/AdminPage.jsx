@@ -10,6 +10,8 @@ import { colourName, PRINT_LABEL } from '../../shared/designSpec'
  * server-side check on every /api/admin route; this screen just shows what the API returns.
  */
 const STATUSES = ['new', 'paid', 'printing', 'shipped', 'delivered', 'cancelled']
+// 'delivered' is shown to the owner as "completed"
+const statusLabel = (s) => (s === 'delivered' ? 'completed' : s)
 const PLACE_LABEL = { front: 'Front', back: 'Back', left_sleeve: 'Left sleeve', right_sleeve: 'Right sleeve' }
 const fmt = (iso) => new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
 const fileUrl = (sha, download) => apiUrl(`/api/admin/files/${sha}${download ? '?download=1' : ''}`)
@@ -71,6 +73,20 @@ function OrderList({ onOpen, onDenied }) {
   const [error, setError] = useState('')
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
   const [backupMsg, setBackupMsg] = useState('')
+  const [busyId, setBusyId] = useState('')
+
+  // One-click completion from the list (the order detail has the full status form)
+  const complete = async (o) => {
+    if (!window.confirm(`Mark order ${o.id} as completed?${o.payment_method === 'cod' ? ' The cash on delivery payment will be recorded as received.' : ''}`)) return
+    setBusyId(o.id)
+    try {
+      await api(`/api/admin/orders/${o.id}`, { method: 'PATCH', json: { status: 'delivered' } })
+      setOrders((list) => list.map((x) => (x.id === o.id ? { ...x, status: 'delivered', payment_status: x.payment_method === 'cod' ? 'paid' : x.payment_status } : x)))
+    } catch (e) {
+      setError(e.message)
+    }
+    setBusyId('')
+  }
 
   useEffect(() => {
     setOrders(null)
@@ -96,7 +112,7 @@ function OrderList({ onOpen, onDenied }) {
           Status
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All</option>
-            {STATUSES.map((s) => <option key={s}>{s}</option>)}
+            {STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
           </select>
         </label>
         <span className="ad__spacer" />
@@ -115,18 +131,27 @@ function OrderList({ onOpen, onDenied }) {
       {orders && orders.length > 0 && (
         <div className="ad__table" role="table">
           <div className="ad__row ad__row--head" role="row">
-            <span>Order</span><span>Placed</span><span>Customer</span><span>Type</span><span>Total</span><span>Payment</span><span>Status</span>
+            <span>Order</span><span>Placed</span><span>Customer</span><span>Type</span><span>Total</span><span>Payment</span><span>Status</span><span>Action</span>
           </div>
           {orders.map((o) => (
-            <button key={o.id} className="ad__row" role="row" onClick={() => onOpen(o.id)}>
+            <div key={o.id} className="ad__row ad__row--click" role="row" tabIndex={0} onClick={() => onOpen(o.id)} onKeyDown={(e) => e.key === 'Enter' && onOpen(o.id)}>
               <span>{o.id}</span>
               <span>{fmt(o.created_at)}</span>
               <span>{o.customer_name}</span>
               <span>{o.kind === 'custom' ? 'Custom' : 'Shop'}</span>
               <span>{formatPrice(o.total)}</span>
               <span>{o.payment_method} · {o.payment_status}</span>
-              <span className={`ad__pill ad__pill--${o.status}`}>{o.status}</span>
-            </button>
+              <span className={`ad__pill ad__pill--${o.status}`}>{statusLabel(o.status)}</span>
+              <span>
+                {o.status === 'delivered' || o.status === 'cancelled' ? (
+                  <span className="ad__muted">{o.status === 'delivered' ? 'Done' : '—'}</span>
+                ) : (
+                  <button className="tc-btn tc-btn--ghost tc-btn--sm" disabled={busyId === o.id} onClick={(e) => { e.stopPropagation(); complete(o) }}>
+                    {busyId === o.id ? 'Saving…' : 'Mark completed'}
+                  </button>
+                )}
+              </span>
+            </div>
           ))}
         </div>
       )}
@@ -205,7 +230,7 @@ function OrderDetail({ id, onBack, onDenied }) {
       <button className="tc-link ad__back" onClick={onBack}>← All orders</button>
       <div className="ad__head">
         <h1>{order.id}</h1>
-        <span className={`ad__pill ad__pill--${order.status}`}>{order.status}</span>
+        <span className={`ad__pill ad__pill--${order.status}`}>{statusLabel(order.status)}</span>
         <span className="ad__muted">{order.kind === 'custom' ? 'Custom print' : 'Shop order'} · {fmt(order.created_at)}</span>
       </div>
 
@@ -229,10 +254,10 @@ function OrderDetail({ id, onBack, onDenied }) {
           <h2>Update status</h2>
           <label>Status
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              {STATUSES.map((s) => <option key={s}>{s}</option>)}
+              {STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
             </select>
           </label>
-          <label>Tracking number {status === 'shipped' && '(required)'}
+          <label>Tracking number or tracking link {status === 'shipped' && '(required)'}
             <input className="tc-input" value={tracking} onChange={(e) => setTracking(e.target.value)} />
           </label>
           <button className="tc-btn tc-btn--primary tc-btn--sm" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

@@ -517,7 +517,7 @@ export default function StudioPage() {
               {hasDesign ? 'Submit order' : 'Add a design to order'}
             </button>
             <p>
-              Delivery is extra and free on orders above {formatPrice(SITE.policy.freeShippingThreshold)}. Ordering 20 or more? See <Link to="/bulk-orders" className="tc-link">bulk orders</Link>.
+              Custom orders cannot be returned. Delivery is extra and free on orders above {formatPrice(SITE.policy.freeShippingThreshold)}. Ordering 20 or more? See <Link to="/bulk-orders" className="tc-link">bulk orders</Link>.
             </p>
           </footer>
         </aside>

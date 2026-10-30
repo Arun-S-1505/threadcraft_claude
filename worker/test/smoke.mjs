@@ -94,6 +94,10 @@ const fileRes = await admin(`/files/${preview.sha256}`)
 check('admin file stream', fileRes.status === 200 && fileRes.headers.get('content-security-policy')?.includes('sandbox'))
 check('ship without tracking -> 400', (await admin(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'shipped' }), headers: json })).status === 400)
 check('ship with tracking', (await admin(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'shipped', trackingNo: 'DTDC123' }), headers: json })).status === 200)
+check('tracking link: javascript: is refused', (await admin(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'shipped', trackingNo: 'javascript:alert(1)' }), headers: json })).status === 400)
+check('tracking link: a long https courier link is accepted', (await admin(`/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'shipped', trackingNo: 'https://www.delhivery.com/track/package/' + 'A'.repeat(120) }), headers: json })).status === 200)
+const afterLink = await (await admin(`/orders/${id}`)).json()
+check('tracking link: stored in full (over the old 60 character limit)', afterLink.tracking_no.length > 100, String(afterLink.tracking_no.length))
 const month = new Date().toISOString().slice(0, 7)
 const csv = await (await admin(`/export?month=${month}`)).text()
 check('csv export contains order', csv.includes(id))
@@ -144,6 +148,11 @@ check('studio white oversized in S refused', (await post(orderForm({ size: 'S' }
 const policy = (await import('../../src/config/site.js')).SITE.policy
 const oldThreshold = policy.freeShippingThreshold
 policy.freeShippingThreshold = 5000
+const codRow = await (await admin(`/orders/${shop.orderId}`)).json()
+check('cod order starts unpaid', codRow.payment_status === 'unpaid', codRow.payment_status)
+check('mark completed: cod order', (await admin(`/orders/${shop.orderId}`, { method: 'PATCH', body: JSON.stringify({ status: 'delivered' }), headers: json })).status === 200)
+const codDone = await (await admin(`/orders/${shop.orderId}`)).json()
+check('mark completed: cod cash is recorded as received', codDone.status === 'delivered' && codDone.payment_status === 'paid', JSON.stringify([codDone.status, codDone.payment_status]))
 const small = await (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, qty: 1 }] })).json()
 policy.freeShippingThreshold = oldThreshold
 check('shop shipping fee below threshold', small.shipping === 79 && small.total === small.subtotal + 79, JSON.stringify(small))

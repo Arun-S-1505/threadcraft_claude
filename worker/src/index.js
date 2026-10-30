@@ -303,11 +303,15 @@ admin.patch('/orders/:id', async (c) => {
   const id = c.req.param('id')
   const body = await c.req.json().catch(() => ({}))
   if (!STATUSES.includes(body.status)) return c.json({ error: 'Invalid status' }, 400)
-  const tracking = (body.trackingNo || '').toString().trim().slice(0, 60) || null
+  // A courier tracking number or a tracking link (http/https only, so nothing else can be planted)
+  const tracking = (body.trackingNo || '').toString().trim().slice(0, 300) || null
+  if (tracking && /^[a-z][a-z0-9+.-]*:/i.test(tracking) && !/^https?:\/\//i.test(tracking)) return c.json({ error: 'A tracking link must start with http:// or https://' }, 400)
   if (body.status === 'shipped' && !tracking) return c.json({ error: 'Tracking number is required when shipping' }, 400)
   const at = now()
   const res = await c.env.DB.prepare(`UPDATE orders SET status = ?1, tracking_no = COALESCE(?2, tracking_no), updated_at = ?3 WHERE id = ?4`).bind(body.status, tracking, at, id).run()
   if (!res.meta.changes) return c.json({ error: 'Not found' }, 404)
+  // Completing a cash-on-delivery order means the cash was collected
+  if (body.status === 'delivered') await c.env.DB.prepare(`UPDATE orders SET payment_status = 'paid' WHERE id = ?1 AND payment_method = 'cod' AND payment_status = 'unpaid'`).bind(id).run()
   await c.env.DB.prepare(`INSERT INTO status_history (order_id, status, tracking_no, actor, at) VALUES (?,?,?,?,?)`).bind(id, body.status, tracking, c.get('admin'), at).run()
   return c.json({ ok: true })
 })

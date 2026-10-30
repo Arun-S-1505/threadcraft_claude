@@ -304,7 +304,7 @@ export default function CheckoutPage() {
             {online && codOk && <p className="tc-hint">Pay online now (UPI, card, netbanking), or pay in cash when it arrives.</p>}
             <ul className="tc-summary__trust">
               <li> Dispatched in {SITE.policy.dispatchHours} hours</li>
-              <li> {SITE.policy.returnDays}-day returns on stock items</li>
+              <li> {SITE.policy.returnDays}-day returns on collection tees</li>
             </ul>
             <p className="tc-summary__legal">
               By placing your order you agree to our <Link to="/policies/terms" className="tc-link">Terms</Link> and <Link to="/policies/privacy" className="tc-link">Privacy Policy</Link>.

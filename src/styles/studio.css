@@ -176,3 +176,4 @@
 }
 .sx__pricehint { margin-top: 8px; font-size: 12.5px; }
 .tc-order__total .tc-order__grand { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); font-weight: 500; }
+.tc-order__final { margin-top: 10px; color: var(--ink); }

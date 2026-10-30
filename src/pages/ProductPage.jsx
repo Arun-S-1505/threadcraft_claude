@@ -204,7 +204,7 @@ export default function ProductPage() {
             <ul className="tc-perks">
               <li> <span>Dispatched in {SITE.policy.dispatchHours} hours<small>Free over {formatPrice(SITE.policy.freeShippingThreshold)}</small></span></li>
               {codAllowed(product) && <li> <span>Cash on delivery<small>Pay when it arrives</small></span></li>}
-              <li> <span>{SITE.policy.returnDays}-day returns<small>On unworn stock items</small></span></li>
+              <li> <span>{SITE.policy.returnDays}-day returns<small>On unworn collection tees</small></span></li>
             </ul>
 
             <div className="tc-acc tc-acc--compact">

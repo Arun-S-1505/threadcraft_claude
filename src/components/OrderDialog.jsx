@@ -133,7 +133,8 @@ export default function OrderDialog({ order, getCapture, onClose }) {
               <div><dt>{formatPrice(unit)} × {qty}</dt><dd>{formatPrice(unit * qty)}</dd></div>
               <div><dt>Delivery</dt><dd>{shippingFor(unit * qty, SITE.policy) === 0 ? 'Free' : formatPrice(shippingFor(unit * qty, SITE.policy))}</dd></div>
               <div className="tc-order__grand"><dt>Total</dt><dd>{formatPrice(unit * qty + shippingFor(unit * qty, SITE.policy))}</dd></div>
-              <p>Delivery is free on orders above {formatPrice(SITE.policy.freeShippingThreshold)}. The server confirms the final amount when the order is placed.</p>
+              <p>Delivery is free on orders above {formatPrice(SITE.policy.freeShippingThreshold)}. The final amount is confirmed when the order is placed.</p>
+              <p className="tc-order__final"><strong>Custom orders cannot be returned or exchanged.</strong> Please check the design, colour and size before you pay.</p>
             </dl>
 
             {formError && <p className="tc-error" role="alert">{formError}</p>}

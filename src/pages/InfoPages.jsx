@@ -112,8 +112,9 @@ const POLICIES = {
     title: 'Returns & exchanges',
     intro: 'Simple, fair and clearly written.',
     sections: [
-      ['Stock items', `Unworn, unwashed items from the collection can be returned or exchanged within ${SITE.policy.returnDays} days of delivery, with tags and packaging intact.`],
-      ['Custom-designed pieces', 'Because custom pieces are made specifically for you and cannot be resold to anyone else, they are not eligible for cash on delivery, and we cannot accept returns for change of mind. If your piece arrives damaged, misprinted or does not match your approved design, we will reprint or refund it at no cost.'],
+      ['Custom studio orders: no returns', 'T-shirts made in the Custom Studio cannot be returned, exchanged or refunded. Each one is printed to order from your own design and cannot be resold, so please check the design, placement, colour and size in the 3D preview before you pay. Custom orders are also never cash on delivery.'],
+      ['Damaged or misprinted custom orders', 'If your custom tee arrives damaged, or the print does not match the design you approved in the studio, email us with your order number and clear photos and we will reprint or refund it at no cost.'],
+      ['Collection t-shirts', `Unworn, unwashed t-shirts from the collection can be returned or exchanged within ${SITE.policy.returnDays} days of delivery, with tags and packaging intact.`],
       ['How to start a return', `Email ${SITE.contact.email} (or message us on Instagram) with your order number and a photo if the item is faulty. We will guide you through the next steps.`],
       ['Refunds', 'Approved refunds are issued to your original payment method. Cash-on-delivery refunds are sent by bank transfer.'],
     ],
@@ -132,7 +133,7 @@ const POLICIES = {
     title: 'Terms of service',
     intro: 'The ground rules for using ThreadCraft.',
     sections: [
-      ['Orders', 'An order is confirmed once payment is received (or, for t-shirts from the collection, a cash-on-delivery order is verified). Custom studio orders are never cash on delivery. We may cancel an order if an item is unavailable or a design cannot be printed as requested, and will refund you in full.'],
+      ['Orders', 'An order is confirmed once payment is received (or, for t-shirts from the collection, a cash-on-delivery order is verified). Custom studio orders are never cash on delivery and cannot be returned or exchanged (see our Returns policy). We may cancel an order if an item is unavailable or a design cannot be printed as requested, and will refund you in full.'],
       ['Custom designs & IP', 'You are responsible for having the right to print any artwork, text or logos you submit. We may decline designs that infringe trademarks or copyright, or that contain unlawful or offensive content.'],
       ['Colours & print', 'Colours on screen may differ slightly from the printed result. Print placement is approved by you in the studio preview before checkout.'],
       ['Pricing', 'Prices are in Indian rupees and include applicable taxes unless stated otherwise.'],

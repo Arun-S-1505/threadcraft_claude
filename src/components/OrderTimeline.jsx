@@ -31,7 +31,15 @@ export default function OrderTimeline({ order, history = [] }) {
           <div>
             <h3>{s.label}</h3>
             {reached.has(s.key) && <p>{formatWhen(reached.get(s.key))}</p>}
-            {s.key === 'shipped' && order.tracking_no && i <= current && <p>Tracking number: {order.tracking_no}</p>}
+            {s.key === 'shipped' && order.tracking_no && i <= current && (
+              <p>
+                {/^https?:\/\//i.test(order.tracking_no) ? (
+                  <a className="tc-link" href={order.tracking_no} target="_blank" rel="noopener noreferrer">Track your parcel</a>
+                ) : (
+                  `Tracking number: ${order.tracking_no}`
+                )}
+              </p>
+            )}
             {i === current && i < steps.length - 1 && <p className="tc-track__now">Currently in progress</p>}
           </div>
         </li>

@@ -14,8 +14,9 @@
 .ad__note { color: var(--muted); margin: 10px 0; }
 .ad__muted { color: var(--muted); font-size: 13px; }
 .ad__table { background: var(--paper); border: 1px solid var(--line); overflow-x: auto; }
-.ad__row { display: grid; grid-template-columns: 1.3fr 1fr 1.3fr 0.7fr 0.8fr 1.2fr 0.9fr; gap: 12px; align-items: center; width: 100%; min-width: 820px; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); }
-button.ad__row:hover { background: var(--paper-2, #f4f3f0); }
+.ad__row { display: grid; grid-template-columns: 1.3fr 1fr 1.3fr 0.7fr 0.8fr 1.2fr 0.9fr 1.2fr; gap: 12px; align-items: center; width: 100%; min-width: 980px; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+.ad__row--click { cursor: pointer; }
+.ad__row--click:hover, .ad__row--click:focus-visible { background: var(--paper-2, #f4f3f0); }
 .ad__row--head { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .ad__pill { display: inline-block; justify-self: start; padding: 3px 10px; border: 1px solid var(--line-strong); font-size: 12px; text-transform: capitalize; }
 .ad__pill--new { border-color: var(--ink); }
