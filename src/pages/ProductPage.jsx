@@ -4,7 +4,7 @@ import Icon from '../components/ui/Icon'
 import Reveal from '../components/ui/Reveal'
 import ProductCard from '../components/ProductCard'
 import { SIZES, formatPrice, getProduct, relatedProducts, codAllowed, photoUrl, VIEW_LABELS } from '../data/products'
-import { COLOURS, FIT_LABEL, SHOP_FITS, SHOP_PRICES, coloursForFit, sizesFor } from '../../shared/designSpec'
+import { COLOURS, FIT_LABEL, SHOP_FITS, SHOP_PRICES, sizesFor } from '../../shared/designSpec'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 import { NotFoundPage } from './InfoPages'
@@ -16,7 +16,6 @@ export default function ProductPage() {
   const { addToCart, toggleWishlist, isWished } = useStore()
 
   const [fit, setFit] = useState('oversized') // oversized is the default
-  const [color, setColor] = useState(null)
   const [size, setSize] = useState(null)
   const [qty, setQty] = useState(1)
   const [view, setView] = useState(null)
@@ -25,7 +24,6 @@ export default function ProductPage() {
 
   useEffect(() => {
     setFit('oversized')
-    setColor(null)
     setSize(null)
     setQty(1)
     setView(null)
@@ -34,14 +32,13 @@ export default function ProductPage() {
 
   if (!product) return <NotFoundPage />
 
-  // Colours, sizes and price all depend on the fit. Maroon is regular only; white oversized has no S.
-  const colours = coloursForFit(fit)
-  const chosen = colours.find((c) => c.hex === color?.hex) || colours.find((c) => c.hex === COLOURS.black.hex) || colours[0]
+  // The colour choice is hidden for now (only black is photographed), so every shop order is black.
+  // Sizes and price depend on the fit.
+  const chosen = COLOURS.black
   const current = product.views.includes(view) ? view : product.views[0] // photo being shown
   const inStock = sizesFor(fit, chosen.hex)
   const sizeSel = inStock.includes(size) ? size : null // a size picked earlier may not exist in the new fit/colour
   const price = SHOP_PRICES[fit]
-  const photoIsBlack = chosen.hex === COLOURS.black.hex
   const wished = isWished(product.id)
   const related = relatedProducts(product, 4)
 
@@ -143,27 +140,6 @@ export default function ProductPage() {
                 ))}
               </div>
               {fit === 'regular' && <p className="tc-hint">The photos show the oversized fit. The regular fit has the same print on a slimmer body.</p>}
-            </div>
-
-            <div className="tc-field">
-              <div className="tc-field__label">
-                <span>Colour</span>
-                <strong>{chosen.name}</strong>
-              </div>
-              <div className="tc-swatches tc-swatches--wrap">
-                {colours.map((c) => (
-                  <button
-                    key={c.hex}
-                    className={`tc-swatch tc-swatch--xl ${chosen.hex === c.hex ? 'is-active' : ''}`}
-                    style={{ '--sw': c.hex }}
-                    title={c.name}
-                    aria-label={c.name}
-                    aria-pressed={chosen.hex === c.hex}
-                    onClick={() => setColor(c)}
-                  />
-                ))}
-              </div>
-              {!photoIsBlack && <p className="tc-hint">The photos show the black tee. Your {chosen.name.toLowerCase()} tee carries the same print.</p>}
             </div>
 
             <div className="tc-field" id="size-group">

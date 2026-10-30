@@ -79,7 +79,7 @@ function NewArrivals() {
         </div>
         <div className="tc-grid tc-grid--4">
           {picks.map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.id} product={p} hanger />
           ))}
         </div>
       </div>
@@ -98,30 +98,47 @@ const STEPS = [
 function StudioSection() {
   return (
     <section className="tc-studio" aria-labelledby="studio-h">
-      <div className="tc-container tc-studio__grid">
-        <div className="tc-studio__art" aria-hidden="true">
-          <Garment type="oversized" color={COLOR_LIB.white.hex} art="wordmark" />
-        </div>
-        <div className="tc-studio__copy">
-          <p className="tc-eyebrow">Custom studio</p>
-          <h2 className="tc-h2" id="studio-h">Bring your own design</h2>
-          <p className="tc-lead">A single piece for yourself, or a run for your team. No minimum order and no design skills needed.</p>
-          <ol className="tc-steps">
-            {STEPS.map((s, idx) => (
-              <li key={s.title}>
-                <span>0{idx + 1}</span>
-                <div>
-                  <h3>{s.title}</h3>
-                  <p>{s.text}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
+      <div className="tc-container">
+        <div className="tc-studio__head">
+          <div>
+            <p className="tc-eyebrow">Custom studio</p>
+            <h2 className="tc-h2" id="studio-h">Bring your own design</h2>
+            <p className="tc-lead">A single piece for yourself, or a run for your team. No minimum order and no design skills needed.</p>
+          </div>
           <div className="tc-studio__cta">
             <Link to="/studio" className="tc-btn tc-btn--primary">Open the studio</Link>
             <Link to="/bulk-orders" className="tc-link">Ordering for a team?</Link>
           </div>
         </div>
+
+        <Link to="/studio" className="tc-shot" aria-label="Open the custom studio">
+          <span className="tc-shot__bar" aria-hidden="true">
+            <i /><i /><i />
+            <em>threadcraft.company/studio</em>
+          </span>
+          <img
+            src="/studio-preview.webp"
+            srcSet="/studio-preview-sm.webp 900w, /studio-preview.webp 1600w"
+            sizes="(max-width: 700px) 100vw, 1200px"
+            width="1600"
+            height="699"
+            alt="The ThreadCraft custom studio: a white oversized tee in 3D with front, back and sleeve views, and the fit, colour and size options with a live price"
+            loading="lazy"
+            decoding="async"
+          />
+        </Link>
+
+        <ol className="tc-steps tc-steps--row">
+          {STEPS.map((s, idx) => (
+            <li key={s.title}>
+              <span>0{idx + 1}</span>
+              <div>
+                <h3>{s.title}</h3>
+                <p>{s.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   )

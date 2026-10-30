@@ -140,7 +140,7 @@ export default function ShopPage() {
               <div className="tc-grid tc-grid--3">
                 {items.map((p, i) => (
                   <Reveal key={p.id} delay={(i % 3) * 70}>
-                    <ProductCard product={p} />
+                    <ProductCard product={p} hanger={collection !== 'all'} />
                   </Reveal>
                 ))}
               </div>

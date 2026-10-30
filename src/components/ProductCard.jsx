@@ -6,7 +6,7 @@ import { formatPrice } from '../data/products'
 import { sizesFor, COLOURS } from '../../shared/designSpec'
 import { useStore } from '../store/StoreContext'
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, hanger = false }) {
   const { addToCart, toggleWishlist, isWished } = useStore()
   const [pickSize, setPickSize] = useState(false)
   const wished = isWished(product.id)
@@ -21,7 +21,7 @@ export default function ProductCard({ product }) {
     <article className="tc-card" onMouseLeave={() => setPickSize(false)}>
       <div className="tc-card__media">
         <Link to={`/product/${product.slug}`} className="tc-card__link" aria-label={`View ${product.name}`}>
-          <ProductImage product={product} hoverBack />
+          <ProductImage product={product} hoverBack hanger={hanger} />
         </Link>
 
         {product.tag && <span className="tc-badge tc-card__tag">{product.tag}</span>}

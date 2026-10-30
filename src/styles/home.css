@@ -60,3 +60,26 @@
 .tc-tile:hover .tc-tile__art img { transform: scale(1.03); }
 @media (max-width: 900px) { .tc-hero__panel { aspect-ratio: 4 / 4.6; } }
 @media (prefers-reduced-motion: reduce) { .tc-tile:hover .tc-tile__art img { transform: none; } }
+
+/* Studio section: a framed screenshot of the real studio */
+.tc-studio__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px 48px; margin-bottom: clamp(28px, 3.5vw, 44px); }
+.tc-studio__head .tc-lead { max-width: 52ch; margin-top: 14px; }
+.tc-studio__head .tc-studio__cta { margin-top: 0; }
+.tc-shot { display: block; overflow: hidden; background: var(--paper); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 2px 6px rgba(27, 27, 26, 0.06), 0 36px 70px -36px rgba(27, 27, 26, 0.38); transition: box-shadow 0.3s ease, transform 0.3s ease; }
+.tc-shot:hover { transform: translateY(-3px); box-shadow: 0 2px 6px rgba(27, 27, 26, 0.06), 0 44px 80px -36px rgba(27, 27, 26, 0.42); }
+.tc-shot__bar { display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 16px; background: var(--paper); border-bottom: 1px solid var(--line); }
+.tc-shot__bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+.tc-shot__bar em { margin-left: 14px; padding: 3px 16px; font-style: normal; font-size: 12px; letter-spacing: 0.02em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; }
+.tc-shot img { display: block; width: 100%; height: auto; }
+.tc-steps--row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 clamp(20px, 3vw, 40px); margin-top: clamp(32px, 4vw, 52px); border-top: 1px solid var(--line-strong); }
+.tc-steps--row li { grid-template-columns: 1fr; gap: 8px; padding: 22px 0 0; border-bottom: 0; }
+.tc-steps--row li > span { padding-top: 0; }
+@media (max-width: 900px) { .tc-steps--row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; } .tc-steps--row li { padding-bottom: 8px; } }
+@media (max-width: 700px) {
+  .tc-shot__bar { height: 34px; padding: 0 12px; }
+  .tc-shot__bar em { display: none; }
+  /* on phones show the shirt and the view tabs, large enough to read, instead of the whole window */
+  .tc-shot img { aspect-ratio: 4 / 3.4; object-fit: cover; object-position: 30% 50%; }
+}
+@media (max-width: 480px) { .tc-steps--row { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .tc-shot, .tc-shot:hover { transition: none; transform: none; } }

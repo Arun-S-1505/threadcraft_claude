@@ -335,3 +335,8 @@
 .tc-seg--fit button { display: grid; gap: 2px; justify-items: center; padding: 12px 10px; }
 .tc-seg--fit button small { font-size: 12px; opacity: 0.75; font-variant-numeric: tabular-nums; }
 .tc-field .tc-hint { margin-top: 10px; }
+
+/* Cards that lead with the hanger photo */
+.tc-stage--hanger { aspect-ratio: 1 / 1; }
+.tc-stage--hanger .tc-stage__front { object-position: 50% 45%; }
+.tc-stage--hanger .tc-stage__back { object-position: 50% 22%; }

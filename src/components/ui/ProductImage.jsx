@@ -4,12 +4,14 @@ import { photoUrl } from '../../data/products'
  * Product photo stage for cards: the main photo, crossfading to the second photo on hover.
  * `view` picks a specific photo (used by the product page gallery).
  */
-export default function ProductImage({ product, hoverBack = false, view, className = '' }) {
-  const src = view ? photoUrl(product.slug, view) : product.image
+export default function ProductImage({ product, hoverBack = false, view, hanger = false, className = '' }) {
+  // hanger = the back of the tee on the hanger first, the on-model back view on hover
+  const src = view ? photoUrl(product.slug, view) : hanger ? photoUrl(product.slug, 'hang-back') : product.image
+  const hover = hanger ? photoUrl(product.slug, 'model-back') : product.hoverImage
   return (
-    <div className={`tc-stage tc-stage--photo ${className}`}>
+    <div className={`tc-stage tc-stage--photo ${hanger ? 'tc-stage--hanger' : ''} ${className}`}>
       <img className="tc-stage__img tc-stage__front" src={src} alt={`${product.name}, black oversized tee`} loading="lazy" decoding="async" />
-      {hoverBack && product.hoverImage && <img className="tc-stage__img tc-stage__back" src={product.hoverImage} alt="" loading="lazy" decoding="async" />}
+      {hoverBack && hover && <img className="tc-stage__img tc-stage__back" src={hover} alt="" loading="lazy" decoding="async" />}
     </div>
   )
 }
