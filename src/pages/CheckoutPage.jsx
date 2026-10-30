@@ -20,7 +20,7 @@ const initial = { email: '', phone: '', firstName: '', lastName: '', address: ''
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { lines, count, subtotal, shipping, gstIncluded, total, clearCart } = useStore()
+  const { lines, count, subtotal, shipping, total, clearCart } = useStore()
   const [form, setForm] = useState(initial)
   const [errors, setErrors] = useState({})
   const { user, setUser } = useAuth()
@@ -286,10 +286,6 @@ export default function CheckoutPage() {
               <div>
                 <dt>Shipping</dt>
                 <dd>{shipping === 0 ? 'Free' : formatPrice(shipping)}</dd>
-              </div>
-              <div className="tc-summary__muted">
-                <dt>GST included</dt>
-                <dd>{formatPrice(gstIncluded)}</dd>
               </div>
               <div className="tc-summary__total">
                 <dt>Total</dt>

@@ -97,16 +97,13 @@ export function StoreProvider({ children }) {
       .map((l) => ({ ...l, price: SHOP_PRICES[l.fit] }))
     const count = lines.reduce((n, l) => n + l.qty, 0)
     const subtotal = lines.reduce((n, l) => n + l.price * l.qty, 0)
-    const { freeShippingThreshold, shippingFee, gstRate } = SITE.policy
+    const { freeShippingThreshold, shippingFee } = SITE.policy
     const shipping = subtotal === 0 || subtotal >= freeShippingThreshold ? 0 : shippingFee
-    // Prices are treated as GST-inclusive (standard for Indian B2C pricing)
-    const gstIncluded = Math.round(subtotal - subtotal / (1 + gstRate))
     return {
       lines,
       count,
       subtotal,
       shipping,
-      gstIncluded,
       total: subtotal + shipping,
       freeShippingRemaining: Math.max(0, freeShippingThreshold - subtotal),
       wishlist,

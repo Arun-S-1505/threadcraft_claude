@@ -34,7 +34,6 @@ export const SITE = {
     freeShippingThreshold: 999, // order value (in currency units) for free shipping
     shippingFee: 79, // flat fee below the threshold
     codFee: 0,
-    gstRate: 0.05, // apparel under ₹1,000 is 5% GST in India, adjust if needed
     dispatchHours: 48, // "printed and shipped within 48 hours"
     returnDays: 7,
     gsmRegular: 180, // regular fit tees

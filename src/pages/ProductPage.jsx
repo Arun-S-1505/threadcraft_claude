@@ -125,7 +125,7 @@ export default function ProductPage() {
             </p>
             <h1 className="tc-buy__title">{product.name}</h1>
             <p className="tc-buy__price">
-              {formatPrice(price)} <span>Inclusive of all taxes</span>
+              {formatPrice(price)}
             </p>
             <p className="tc-buy__blurb">{product.blurb}</p>
 

@@ -141,7 +141,7 @@ const POLICIES = {
       ['Orders', 'An order is confirmed once payment is received (or, for t-shirts from the collection, a cash-on-delivery order is verified). Custom studio orders are never cash on delivery and cannot be returned or exchanged (see our Returns policy). We may cancel an order if an item is unavailable or a design cannot be printed as requested, and will refund you in full.'],
       ['Custom designs & IP', 'You are responsible for having the right to print any artwork, text or logos you submit. We may decline designs that infringe trademarks or copyright, or that contain unlawful or offensive content.'],
       ['Colours & print', 'Colours on screen may differ slightly from the printed result. Print placement is approved by you in the studio preview before checkout.'],
-      ['Pricing', 'Prices are in Indian rupees and include applicable taxes unless stated otherwise. Delivery is charged separately (see our Shipping policy). The price of a custom order is calculated from your design and confirmed when you place the order.'],
+      ['Pricing', 'Prices are in Indian rupees. No GST is charged, because ThreadCraft is not registered for GST. Delivery is charged separately (see our Shipping policy). The price of a custom order is calculated from your design and confirmed when you place the order.'],
       ['Availability', 'Sizes and colours are subject to availability. If an item you ordered turns out to be unavailable, we will contact you and refund you in full.'],
     ],
   },

@@ -117,7 +117,7 @@ export default function CartDrawer() {
               <span>Subtotal</span>
               <strong>{formatPrice(subtotal)}</strong>
             </div>
-            <p className="tc-drawer__note">Taxes included. Shipping calculated at checkout.</p>
+            <p className="tc-drawer__note">Shipping calculated at checkout.</p>
             <Link to="/checkout" className="tc-btn tc-btn--primary tc-btn--block" onClick={closeDrawer}>
               Checkout 
             </Link>

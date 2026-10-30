@@ -8,7 +8,7 @@ import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 
 export default function CartPage() {
-  const { lines, count, subtotal, shipping, gstIncluded, total, updateQty, removeLine, freeShippingRemaining } = useStore()
+  const { lines, count, subtotal, shipping, total, updateQty, removeLine, freeShippingRemaining } = useStore()
   const threshold = SITE.policy.freeShippingThreshold
   const progress = Math.min(100, (subtotal / threshold) * 100)
   const inCart = new Set(lines.map((l) => l.productId))
@@ -115,10 +115,6 @@ export default function CartPage() {
                 <div>
                   <dt>Shipping</dt>
                   <dd>{shipping === 0 ? 'Free' : formatPrice(shipping)}</dd>
-                </div>
-                <div className="tc-summary__muted">
-                  <dt>GST included</dt>
-                  <dd>{formatPrice(gstIncluded)}</dd>
                 </div>
                 <div className="tc-summary__total">
                   <dt>Total</dt>
