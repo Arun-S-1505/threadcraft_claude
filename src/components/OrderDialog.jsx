@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from './ui/Icon'
 import { formatPrice } from '../data/products'
-import { prepareOrder, submitOrder } from '../lib/orders'
+import { prepareOrder, submitOrder, abandonOrder } from '../lib/orders'
 import { useAuth } from '../store/AuthContext'
 import { rememberDetails } from '../lib/remember'
 import { openCheckout } from '../lib/razorpay'
 import { MAX_QUANTITY, MIN_IMAGE_SIDE, unitPrice, shippingFor, validateCustomer } from '../../shared/designSpec'
 import { SITE } from '../config/site'
+
+const PAYMENT_FAILED = 'Payment failed, so your order was not placed. Your design and details are still here: you can try again. If any money was deducted, your bank will refund it automatically.'
+const PAYMENT_UNCONFIRMED = 'We could not confirm your payment yet. If the money was deducted, your order will be confirmed automatically and we will email you. Please check your email before trying again.'
 
 const EMPTY = { name: '', email: '', phone: '', address: '', city: '', pincode: '', quantity: 1, notes: '' }
 
@@ -61,15 +64,20 @@ export default function OrderDialog({ order, getCapture, onClose }) {
         quantity: qty,
       })
       rememberDetails(user, setUser, { name: form.name, phone: form.phone, address: form.address, city: form.city, pincode: form.pincode })
-      let pay = res.payment?.gatewayOrderId ? 'pending' : res.payment?.error ? 'failed' : 'invoice'
-      if (pay === 'pending') {
+      let pay = 'invoice'
+      if (res.payment?.gatewayOrderId || res.payment?.error) {
         setStatus('paying')
-        try {
-          // "completed" only means the customer finished; the server confirms payment via webhook
-          pay = (await openCheckout(res.payment, { description: `Custom order ${res.orderId}` })) === 'completed' ? 'completed' : 'pending'
-        } catch {
-          pay = 'pending'
+        // "completed" only means the customer finished; the server confirms payment via webhook
+        let outcome = 'dismissed'
+        if (res.payment.gatewayOrderId) outcome = await openCheckout(res.payment, { description: `Custom order ${res.orderId}` }).catch(() => 'dismissed')
+        if (outcome !== 'completed') {
+          // Not paid: the order must not exist. The server removes it unless a payment is still in progress.
+          const gone = await abandonOrder(res.orderId, form.email.trim(), res.payment.gatewayOrderId).catch(() => null)
+          setFormError(gone?.removed ? PAYMENT_FAILED : PAYMENT_UNCONFIRMED)
+          setStatus('form')
+          return
         }
+        pay = 'completed'
       }
       setResult({ ...res, pay })
       setStatus('done')
@@ -97,8 +105,6 @@ export default function OrderDialog({ order, getCapture, onClose }) {
             </p>
             <p>
               {result.pay === 'completed' && 'Your payment went through. We will confirm it by email shortly.'}
-              {result.pay === 'pending' && 'Your payment is not complete yet. You can finish it any time from Track Order using your order number and email.'}
-              {result.pay === 'failed' && result.payment.error}
               {result.pay === 'invoice' && 'We will email you a payment request after reviewing your design.'}
             </p>
             <div className="sx__actions">

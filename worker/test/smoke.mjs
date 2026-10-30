@@ -448,6 +448,76 @@ if (!REMOTE) {
   check('sizes: XXL is refused in the shop', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [shopLine] })).status === 400)
     }
 
+// Online payment that fails or is cancelled: the order must not exist
+if (!REMOTE) {
+  const realFetch = globalThis.fetch
+  let rzpPayments = []
+  let gwN = 0
+  const mails = []
+  globalThis.fetch = async (url, init) => {
+    const u = String(url)
+    if (u.startsWith('https://api.razorpay.com/v1/orders') && init?.method === 'POST') return new Response(JSON.stringify({ id: 'order_F' + ++gwN }), { status: 200 })
+    if (/^https:\/\/api\.razorpay\.com\/v1\/orders\/[^/]+\/payments/.test(u)) return new Response(JSON.stringify({ items: rzpPayments }), { status: 200 })
+    if (u.startsWith('https://api.resend.com/')) {
+      mails.push(JSON.parse(init.body))
+      return new Response('{}', { status: 200 })
+    }
+    return realFetch(url, init)
+  }
+  const { api: pf, env: pfEnv } = makeApi({ DEV_ADMIN_EMAIL: 'threadcraftcustomwear@gmail.com', RAZORPAY_KEY_ID: 'rzp_live_x', RAZORPAY_KEY_SECRET: 'sek', RESEND_API_KEY: 're_test', FROM_EMAIL: 'ThreadCraft <orders@example.com>' })
+  const adm = (p, init) => pf('/api/admin' + p, init)
+  const qty = async () => (await (await adm('/stock')).json()).items.find((i) => i.fit === 'oversized' && i.colour === '#1A1A1A' && i.size === 'M').qty
+  const online = (q = 2) => jpost('/api/shop-orders', { customer: shopCustomer, payment: 'upi', items: [{ ...line, qty: q }] }, pf)
+  const abandon = (id, body) => jpost('/api/orders/' + id + '/abandon', body, pf)
+  const paid = (orderId, amount, eid) => {
+    const body = JSON.stringify({ event: 'payment.captured', payload: { payment: { entity: { id: 'pay_' + eid, amount, notes: { order_id: orderId } } } } })
+    const sig = crypto.createHmac('sha256', 'test_secret').update(body).digest('hex')
+    return pf('/api/webhooks/razorpay', { method: 'POST', body, headers: { 'x-razorpay-signature': sig, 'x-razorpay-event-id': eid } })
+  }
+  const orderOf = async (id) => (await adm('/orders/' + id)).json()
+  await adm('/stock', { method: 'PUT', body: JSON.stringify({ items: [{ fit: 'oversized', colour: '#1A1A1A', size: 'M', qty: 10 }] }), headers: json })
+
+  const first = await (await online()).json()
+  check('payment: an online order starts with payment params', !!first.orderId && first.payment?.gatewayOrderId === 'order_F1', JSON.stringify(first))
+  check('payment: no confirmation email before the payment is confirmed', mails.length === 0)
+  check('payment: the tees are held while the customer pays (10 -> 8)', (await qty()) === 8)
+  check('abandon: wrong email -> 404', (await abandon(first.orderId, { email: 'x@example.com', gatewayOrderId: 'order_F1' })).status === 404)
+  check('abandon: wrong payment reference -> 403', (await abandon(first.orderId, { email: shopCustomer.email, gatewayOrderId: 'order_other' })).status === 403)
+  rzpPayments = [{ id: 'pay_1', status: 'created' }]
+  const pend = await (await abandon(first.orderId, { email: shopCustomer.email, gatewayOrderId: 'order_F1' })).json()
+  check('abandon: a payment still in progress keeps the order', pend.removed === false && pend.pending === true, JSON.stringify(pend))
+  rzpPayments = [{ id: 'pay_1', status: 'failed' }]
+  const gone = await (await abandon(first.orderId, { email: shopCustomer.email, gatewayOrderId: 'order_F1' })).json()
+  check('abandon: after a failed payment the order is removed', gone.removed === true, JSON.stringify(gone))
+  check('abandon: the order is gone from the admin list', !(await (await adm('/orders')).json()).orders.some((o) => o.id === first.orderId))
+  check('abandon: its tees go back to stock (8 -> 10)', (await qty()) === 10)
+  check('abandon: no email was sent for the failed payment', mails.length === 0)
+
+  rzpPayments = []
+  const second = await (await online(1)).json()
+  check('payment: webhook marks the order paid', (await paid(second.orderId, second.total * 100, 'ev1')).status === 200 && (await orderOf(second.orderId)).payment_status === 'paid')
+  check('payment: the confirmation emails go out once it is paid (owner + customer)', mails.length === 2 && mails.some((m) => m.to === 'shop@example.com' && /received your ThreadCraft order/.test(m.subject)), JSON.stringify(mails.map((m) => m.subject)))
+  await paid(second.orderId, second.total * 100, 'ev2')
+  check('payment: a repeated payment event sends no extra emails', mails.length === 2)
+  check('abandon: a paid order is never removed', (await (await abandon(second.orderId, { email: shopCustomer.email, gatewayOrderId: 'order_F2' })).json()).removed === false)
+
+  mails.length = 0
+  await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, qty: 1 }] }, pf)
+  check('cod: the confirmation emails still go out immediately', mails.length === 2)
+
+  // an online order left unpaid for over 2 hours is cancelled (tees returned); a payment that still lands revives it
+  const stale = await (await online(1)).json()
+  await pfEnv.DB.prepare('UPDATE orders SET created_at = ? WHERE id = ?').bind(new Date(Date.now() - 3 * 3600_000).toISOString(), stale.orderId).run()
+  const heldBefore = await qty()
+  await online(1) // placing the next online order triggers the cleanup
+  check('stale: an unpaid online order older than 2 hours is cancelled', (await orderOf(stale.orderId)).status === 'cancelled')
+  check('stale: its tee went back to stock', (await qty()) === heldBefore) // +1 returned, -1 for the new order
+  await paid(stale.orderId, stale.total * 100, 'ev3')
+  const revived = await orderOf(stale.orderId)
+  check('stale: a late payment revives the order and takes its tee again', revived.status === 'paid' && revived.payment_status === 'paid' && (await qty()) === heldBefore - 1, JSON.stringify([revived.status, await qty(), heldBefore]))
+  globalThis.fetch = realFetch
+}
+
 // Stock counts and the shipped / completed emails
 if (!REMOTE) {
   const realFetch = globalThis.fetch

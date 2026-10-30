@@ -10,6 +10,10 @@ import { useAuth } from '../store/AuthContext'
 import { STATES } from '../data/india'
 import { api } from '../lib/api'
 import { openCheckout } from '../lib/razorpay'
+import { abandonOrder } from '../lib/orders'
+
+const PAYMENT_FAILED = 'Payment failed, so your order was not placed. Your bag is unchanged: you can try again, or choose cash on delivery. If any money was deducted, your bank will refund it automatically.'
+const PAYMENT_UNCONFIRMED = 'We could not confirm your payment yet. If the money was deducted, your order will be confirmed automatically and we will email you. Please check your email before trying again.'
 import { rememberDetails } from '../lib/remember'
 
 const initial = { email: '', phone: '', firstName: '', lastName: '', address: '', apartment: '', city: '', state: 'Tamil Nadu', pin: '', notes: '' }
@@ -117,11 +121,19 @@ export default function CheckoutPage() {
         pincode: form.pin.trim(),
       })
 
-      let payState = method === 'cod' ? 'cod' : 'pending'
-      if (res.payment?.gatewayOrderId) {
+      let payState = 'cod'
+      if (method === 'online') {
         // "completed" only means the customer finished; the server confirms payment via webhook
-        const outcome = await openCheckout(res.payment, { description: `Order ${res.orderId}` }).catch(() => 'dismissed')
-        payState = outcome === 'completed' ? 'completed' : 'pending'
+        let outcome = 'dismissed'
+        if (res.payment?.gatewayOrderId) outcome = await openCheckout(res.payment, { description: `Order ${res.orderId}` }).catch(() => 'dismissed')
+        if (outcome !== 'completed') {
+          // Not paid: the order must not exist. The server removes it unless a payment is still in progress.
+          const gone = await abandonOrder(res.orderId, (emailLocked ? user.email : form.email).trim(), res.payment?.gatewayOrderId).catch(() => null)
+          setFormError(gone?.removed ? PAYMENT_FAILED : PAYMENT_UNCONFIRMED)
+          setPlacing(false)
+          return
+        }
+        payState = 'completed'
       }
 
       const order = {

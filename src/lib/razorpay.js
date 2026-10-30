@@ -19,7 +19,7 @@ function loadScript() {
   return loading
 }
 
-/** Opens checkout. Resolves 'completed' (customer finished paying) or 'dismissed' (closed / failed). */
+/** Opens checkout. Resolves 'completed' (customer finished paying) or 'dismissed' (the window was closed without paying). */
 export async function openCheckout(payment, { description }) {
   await loadScript()
   return new Promise((resolve) => {
@@ -35,7 +35,7 @@ export async function openCheckout(payment, { description }) {
       handler: () => resolve('completed'),
       modal: { ondismiss: () => resolve('dismissed') },
     })
-    rzp.on('payment.failed', () => resolve('dismissed'))
+    // A failed attempt leaves Razorpay's window open so the customer can retry; the checkout only ends when it is closed.
     rzp.open()
   })
 }

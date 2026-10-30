@@ -6,7 +6,8 @@ import { readUploads, MAX_REQUEST_BYTES } from './files.js'
 import { requireAdmin } from './auth.js'
 import { notifyNewOrder, notifyMessage, notifyStatus } from './email.js'
 import { reserveStock, releaseStock, linesFromOrder, enabledGated } from './stock.js'
-import { gatewayEnabled, createGatewayOrder } from './payments.js'
+import { gatewayEnabled, createGatewayOrder, listGatewayPayments } from './payments.js'
+import { orderMailPayload } from './orderMail.js'
 import { priceCart } from './catalog.js'
 import { runMonthlyBackup } from './backup.js'
 import { userRoutes, cleanupAuth, getSessionUser } from './users.js'
@@ -145,9 +146,10 @@ app.post('/api/orders', rateLimit, async (c) => {
     throw err
   }
 
-  const paymentNote = online
-    ? 'Payment: online. If you have not completed payment yet, use the Track Order page to pay.'
-    : 'Payment: we will email you a payment request once we have reviewed your design.'
+  // Paid online: the order emails are sent when the payment is confirmed (webhook), not before.
+  if (online) c.executionCtx.waitUntil(cancelStaleUnpaid(c.env))
+  const paymentNote = 'Payment: we will email you a payment request once we have reviewed your design.'
+  if (!online)
   c.executionCtx.waitUntil(
     notifyNewOrder(c.env, {
       id,
@@ -231,17 +233,70 @@ app.post('/api/shop-orders', rateLimit, async (c) => {
     throw err
   }
 
+  if (method === 'online') c.executionCtx.waitUntil(cancelStaleUnpaid(c.env))
+  // Cash on delivery: confirm now. Paid online: the emails are sent when the payment is confirmed (webhook).
+  if (method === 'cod')
   c.executionCtx.waitUntil(
     notifyNewOrder(c.env, {
       id,
       total: priced.total,
       customer,
-      paymentNote: method === 'cod' ? 'Payment: cash on delivery.' : 'Payment: online.',
+      paymentNote: 'Payment: cash on delivery.',
       lines: priced.items.map((i) => `${i.name} (${i.fitLabel}, ${i.colour}, ${i.size}) × ${i.qty}`),
     })
   )
   return c.json({ orderId: id, total: priced.total, subtotal: priced.subtotal, shipping: priced.shipping, method, payment: method === 'online' ? await startPayment(c, id) : null }, 201)
 })
+
+/* ───────── Public: the customer's online payment failed or was cancelled → the order is not placed ───────── */
+// Only an order that has no live payment is removed. If Razorpay says a payment is in progress or done (for example a
+// UPI approval that is still pending) the order is kept and the webhook decides.
+app.post('/api/orders/:id/abandon', rateLimit, async (c) => {
+  const id = c.req.param('id').trim().toUpperCase()
+  const body = await c.req.json().catch(() => ({}))
+  const email = String(body.email || '').trim().toLowerCase()
+  const order = await c.env.DB.prepare(`SELECT id, kind, status, payment_method, payment_status, gateway_order_id, size, quantity, spec_json FROM orders WHERE id = ? AND email = ?`).bind(id, email).first()
+  if (!order) return c.json({ error: 'Order not found' }, 404)
+  if (order.payment_method !== 'online' || order.status !== 'new' || !['unpaid', 'failed'].includes(order.payment_status)) return c.json({ removed: false })
+  if (order.gateway_order_id && body.gatewayOrderId !== order.gateway_order_id) return c.json({ error: 'Forbidden' }, 403)
+  if (order.gateway_order_id) {
+    let payments
+    try {
+      payments = await listGatewayPayments(c.env, order.gateway_order_id)
+    } catch (err) {
+      console.error(err)
+      return c.json({ removed: false, pending: true })
+    }
+    if (payments.some((p) => p.status !== 'failed')) return c.json({ removed: false, pending: true })
+  }
+  const at = now()
+  await releaseStock(c.env.DB, linesFromOrder(order), at).catch((err) => console.error('stock release failed', err))
+  await c.env.DB.batch([
+    c.env.DB.prepare(`DELETE FROM status_history WHERE order_id = ?`).bind(id),
+    c.env.DB.prepare(`DELETE FROM order_files WHERE order_id = ?`).bind(id),
+    c.env.DB.prepare(`DELETE FROM orders WHERE id = ?`).bind(id),
+  ])
+  return c.json({ removed: true })
+})
+
+// Online orders whose payment never arrived (tab closed, phone died) are cancelled after 2 hours and their tees returned
+// to stock. A payment that still lands later revives the order (see the webhook).
+async function cancelStaleUnpaid(env) {
+  try {
+    const cutoff = new Date(Date.now() - 2 * 3600_000).toISOString()
+    const rows = (await env.DB.prepare(`SELECT id, kind, size, quantity, spec_json FROM orders WHERE payment_method = 'online' AND payment_status IN ('unpaid','failed') AND status = 'new' AND created_at < ?`).bind(cutoff).all()).results
+    for (const o of rows) {
+      const at = now()
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ?1 WHERE id = ?2 AND status = 'new'`).bind(at, o.id),
+        env.DB.prepare(`INSERT INTO status_history (order_id, status, actor, at) VALUES (?,?,?,?)`).bind(o.id, 'cancelled', 'system', at),
+      ])
+      await releaseStock(env.DB, linesFromOrder(o), at)
+    }
+  } catch (err) {
+    console.error('stale order cleanup failed', err)
+  }
+}
 
 /* ───────── Public: retry payment for an unpaid online order ───────── */
 app.post('/api/pay', rateLimit, async (c) => {
@@ -505,14 +560,23 @@ app.post('/api/webhooks/razorpay', async (c) => {
   const pay = event?.payload?.payment?.entity
   const orderId = pay?.notes?.order_id
   if (event.event === 'payment.captured' && orderId) {
-    const order = await c.env.DB.prepare(`SELECT total, status FROM orders WHERE id = ?`).bind(orderId).first()
+    const order = await c.env.DB.prepare(`SELECT * FROM orders WHERE id = ?`).bind(orderId).first()
     // Only mark paid if the amount the gateway captured equals the price WE computed.
-    if (order && pay.amount === order.total * 100) {
+    if (order && pay.amount === order.total * 100 && order.payment_status !== 'paid') {
       const at = now()
+      // A payment that lands on an order we auto-cancelled (customer left the payment window open) revives it
+      let revive = false
+      if (order.status === 'cancelled') {
+        const last = await c.env.DB.prepare(`SELECT actor FROM status_history WHERE order_id = ? AND status = 'cancelled' ORDER BY id DESC LIMIT 1`).bind(orderId).first()
+        revive = last?.actor === 'system'
+      }
       await c.env.DB.batch([
-        c.env.DB.prepare(`UPDATE orders SET payment_status='paid', payment_id=?1, status=CASE WHEN status='new' THEN 'paid' ELSE status END, updated_at=?2 WHERE id=?3`).bind(pay.id, at, orderId),
+        c.env.DB.prepare(`UPDATE orders SET payment_status='paid', payment_id=?1, status=CASE WHEN status='new' OR ?4 = 1 THEN 'paid' ELSE status END, updated_at=?2 WHERE id=?3`).bind(pay.id, at, orderId, revive ? 1 : 0),
         c.env.DB.prepare(`INSERT INTO status_history (order_id, status, actor, at) VALUES (?,?,?,?)`).bind(orderId, 'paid', 'webhook', at),
       ])
+      if (revive) await reserveStock(c.env.DB, linesFromOrder(order), at)
+      // Online orders get their confirmation emails now that the money is in
+      if (order.payment_method === 'online') c.executionCtx.waitUntil(notifyNewOrder(c.env, orderMailPayload(order, 'Payment: paid online.')))
     }
   } else if (event.event === 'payment.failed' && orderId) {
     await c.env.DB.prepare(`UPDATE orders SET payment_status='failed', updated_at=?1 WHERE id=?2 AND payment_status='unpaid'`).bind(now(), orderId).run()

@@ -59,3 +59,8 @@ export function submitOrder({ spec, blobs, previews, customer, size, quantity })
   Object.entries(previews).forEach(([view, blob]) => form.append(`preview_${view}`, blob, `${view}.webp`))
   return api('/api/orders', { method: 'POST', form })
 }
+
+/** Tells the server the online payment failed or was cancelled so the order is removed. Resolves { removed, pending? }. */
+export function abandonOrder(orderId, email, gatewayOrderId) {
+  return api(`/api/orders/${encodeURIComponent(orderId)}/abandon`, { method: 'POST', json: { email, gatewayOrderId } })
+}

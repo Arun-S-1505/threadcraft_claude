@@ -34,3 +34,12 @@ export async function createGatewayOrder(env, order) {
     prefill: { name: order.customer_name, email: order.email, contact: order.phone },
   }
 }
+
+/** Payments tried on a Razorpay order: [{ id, status }] (status: created, authorized, captured, failed ...). */
+export async function listGatewayPayments(env, gatewayOrderId) {
+  const res = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(gatewayOrderId)}/payments`, {
+    headers: { Authorization: 'Basic ' + btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`) },
+  })
+  if (!res.ok) throw new Error('Razorpay lookup failed: ' + res.status)
+  return (await res.json()).items || []
+}
