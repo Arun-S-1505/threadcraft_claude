@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import Reveal from '../components/ui/Reveal'
 import ProductCard from '../components/ProductCard'
-import { SIZES, formatPrice, getProduct, relatedProducts, codAllowed, photoUrl, VIEW_LABELS } from '../data/products'
+import { SIZES, formatPrice, getProduct, relatedProducts, photoUrl, VIEW_LABELS } from '../data/products'
 import { COLOURS, FIT_LABEL, SHOP_FITS, SHOP_PRICES } from '../../shared/designSpec'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
@@ -73,7 +73,7 @@ export default function ProductPage() {
       title: 'Shipping & returns',
       body: (
         <p>
-          Dispatched within {SITE.policy.dispatchHours} hours. Free shipping over {formatPrice(SITE.policy.freeShippingThreshold)}, otherwise {formatPrice(SITE.policy.shippingFee)}. Cash on delivery is available on all t-shirts. Unworn stock items can be returned within {SITE.policy.returnDays} days.{' '}
+          Dispatched within {SITE.policy.dispatchHours} hours. Delivery is free. All orders are paid online in advance. Unworn stock items can be returned within {SITE.policy.returnDays} days.{' '}
           <Link to="/policies/returns" className="tc-link">Read the full policy</Link>.
         </p>
       ),
@@ -206,8 +206,8 @@ export default function ProductPage() {
             )}
 
             <ul className="tc-perks">
-              <li> <span>Dispatched in {SITE.policy.dispatchHours} hours<small>Free over {formatPrice(SITE.policy.freeShippingThreshold)}</small></span></li>
-              {codAllowed(product) && <li> <span>Cash on delivery<small>Pay when it arrives</small></span></li>}
+              <li> <span>Dispatched in {SITE.policy.dispatchHours} hours<small>Free delivery</small></span></li>
+              <li> <span>Secure online payment<small>UPI, card or netbanking</small></span></li>
               <li> <span>{SITE.policy.returnDays}-day returns<small>On unworn collection tees</small></span></li>
             </ul>
 

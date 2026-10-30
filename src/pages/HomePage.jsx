@@ -209,8 +209,8 @@ const FAQS = [
     a: `T-shirts from the collection can be returned within ${SITE.policy.returnDays} days if unworn and unwashed. Custom studio tees cannot be returned or exchanged, because each one is printed to order from your design. If a custom tee arrives damaged or misprinted, we reprint or refund it at no cost.`,
   },
   {
-    q: 'Do you offer cash on delivery?',
-    a: 'Yes, for t-shirts from the collection. At checkout you can pay online (UPI, card or netbanking) or choose cash on delivery. Custom studio orders are always paid online in advance.',
+    q: 'How can I pay, and what does delivery cost?',
+    a: 'All orders are paid online in advance (UPI, card or netbanking) through Razorpay; we do not offer cash on delivery. Delivery is free on every collection order. Custom studio orders pay a small delivery fee, which is free from ₹999 (shown before you pay).',
   },
   {
     q: 'How do I pick the right size?',

@@ -8,8 +8,6 @@ export const formatPrice = (n) => `${SITE.currency.symbol}${nf.format(Math.round
 /* ───────── Shared option lists ───────── */
 export const SIZES = SPEC_SIZES
 
-/** Cash on delivery is only for t-shirts from the collection, never for custom studio orders. Every collection product is a tee. */
-export const codAllowed = () => true
 
 export const TYPES = {
   tee: { label: 'Round-neck Tee', group: 'T-Shirts' },

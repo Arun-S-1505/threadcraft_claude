@@ -97,15 +97,14 @@ export function StoreProvider({ children }) {
       .map((l) => ({ ...l, price: SHOP_PRICES[l.fit] }))
     const count = lines.reduce((n, l) => n + l.qty, 0)
     const subtotal = lines.reduce((n, l) => n + l.price * l.qty, 0)
-    const { freeShippingThreshold, shippingFee } = SITE.policy
-    const shipping = subtotal === 0 || subtotal >= freeShippingThreshold ? 0 : shippingFee
+    // Delivery is free on every collection order
+    const shipping = 0
     return {
       lines,
       count,
       subtotal,
       shipping,
       total: subtotal + shipping,
-      freeShippingRemaining: Math.max(0, freeShippingThreshold - subtotal),
       wishlist,
       isWished: (id) => wishlist.includes(id),
       drawerOpen,

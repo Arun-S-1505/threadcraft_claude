@@ -31,9 +31,9 @@ export const SITE = {
   currency: { symbol: '₹', locale: 'en-IN', code: 'INR' },
 
   policy: {
-    freeShippingThreshold: 999, // order value (in currency units) for free shipping
+    // Collection orders always ship free. These two apply to CUSTOM STUDIO orders only (see shippingFor).
+    freeShippingThreshold: 999, // custom order value (in currency units) for free delivery
     shippingFee: 79, // flat fee below the threshold
-    codFee: 0,
     dispatchHours: 48, // "printed and shipped within 48 hours"
     returnDays: 7,
     gsmRegular: 180, // regular fit tees
@@ -42,8 +42,8 @@ export const SITE = {
 
   // Announcement bar (scrolling strip above the navbar)
   announcements: [
-    'Free shipping on orders above ₹999',
-    'Cash on Delivery on all t-shirts',
+    'Free delivery on every collection order',
+    'Secure payments · UPI, cards and netbanking',
     'Custom prints dispatched in 48 hours',
     '180 GSM regular · 240 GSM oversized',
   ],

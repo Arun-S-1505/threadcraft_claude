@@ -198,18 +198,19 @@ app.get('/api/stock', async (c) => {
 })
 
 /* ───────── Public: what the storefront may offer ───────── */
-app.get('/api/config', (c) => c.json({ onlinePayments: gatewayEnabled(c.env), cod: true, googleClientId: c.env.GOOGLE_CLIENT_ID || null }))
+app.get('/api/config', (c) => c.json({ onlinePayments: gatewayEnabled(c.env), googleClientId: c.env.GOOGLE_CLIENT_ID || null }))
 
 /* ───────── Public: shop (cart) order ───────── */
 app.post('/api/shop-orders', rateLimit, async (c) => {
   const body = await c.req.json().catch(() => null)
   if (!body) return c.json({ error: 'Invalid request' }, 400)
-  const { payment, items } = body
+  const { items } = body
   const customer = await withAccountEmail(c, body.customer)
-  const method = payment === 'cod' ? 'cod' : 'online'
-  if (method === 'online' && !gatewayEnabled(c.env)) return c.json({ error: 'Online payment is not available yet. Please choose cash on delivery.' }, 400)
+  // Prepaid only: every shop order is paid online (there is no cash on delivery)
+  const method = 'online'
+  if (!gatewayEnabled(c.env)) return c.json({ error: 'Online payment is not available right now. Please try again later.' }, 400)
 
-  const priced = priceCart(items, { cod: method === 'cod', enabled: await enabledGated(c.env.DB) })
+  const priced = priceCart(items, { enabled: await enabledGated(c.env.DB) })
   if (priced.error) return c.json({ error: priced.error }, 400)
   const custErrors = validateCustomer({ ...customer, quantity: priced.count })
   if (Object.keys(custErrors).length) return c.json({ error: Object.values(custErrors)[0] }, 400)
@@ -233,19 +234,9 @@ app.post('/api/shop-orders', rateLimit, async (c) => {
     throw err
   }
 
-  if (method === 'online') c.executionCtx.waitUntil(cancelStaleUnpaid(c.env))
-  // Cash on delivery: confirm now. Paid online: the emails are sent when the payment is confirmed (webhook).
-  if (method === 'cod')
-  c.executionCtx.waitUntil(
-    notifyNewOrder(c.env, {
-      id,
-      total: priced.total,
-      customer,
-      paymentNote: 'Payment: cash on delivery.',
-      lines: priced.items.map((i) => `${i.name} (${i.fitLabel}, ${i.colour}, ${i.size}) × ${i.qty}`),
-    })
-  )
-  return c.json({ orderId: id, total: priced.total, subtotal: priced.subtotal, shipping: priced.shipping, method, payment: method === 'online' ? await startPayment(c, id) : null }, 201)
+  c.executionCtx.waitUntil(cancelStaleUnpaid(c.env))
+  // The emails are sent when the payment is confirmed (webhook)
+  return c.json({ orderId: id, total: priced.total, subtotal: priced.subtotal, shipping: priced.shipping, method, payment: await startPayment(c, id) }, 201)
 })
 
 /* ───────── Public: the customer's online payment failed or was cancelled → the order is not placed ───────── */

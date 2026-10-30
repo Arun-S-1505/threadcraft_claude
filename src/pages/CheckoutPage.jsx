@@ -3,7 +3,7 @@ import { FIT_LABEL } from '../../shared/designSpec'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import { ProductThumb } from '../components/ui/ProductImage'
-import { formatPrice, codAllowed } from '../data/products'
+import { formatPrice } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 import { useAuth } from '../store/AuthContext'
@@ -12,7 +12,7 @@ import { api } from '../lib/api'
 import { openCheckout } from '../lib/razorpay'
 import { abandonOrder } from '../lib/orders'
 
-const PAYMENT_FAILED = 'Payment failed, so your order was not placed. Your bag is unchanged: you can try again, or choose cash on delivery. If any money was deducted, your bank will refund it automatically.'
+const PAYMENT_FAILED = 'Payment failed, so your order was not placed. Your bag is unchanged: you can try again. If any money was deducted, your bank will refund it automatically.'
 const PAYMENT_UNCONFIRMED = 'We could not confirm your payment yet. If the money was deducted, your order will be confirmed automatically and we will email you. Please check your email before trying again.'
 import { rememberDetails } from '../lib/remember'
 
@@ -25,7 +25,7 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({})
   const { user, setUser } = useAuth()
   const prefilled = useRef(false)
-  const [cfg, setCfg] = useState(null) // what the server can accept: { onlinePayments, cod }
+  const [cfg, setCfg] = useState(null) // what the server can accept: { onlinePayments }
   const [placing, setPlacing] = useState(false)
   const [formError, setFormError] = useState('')
 
@@ -35,7 +35,7 @@ export default function CheckoutPage() {
       .then((c) => {
         setCfg(c)
       })
-      .catch((e) => e.name !== 'AbortError' && setCfg({ onlinePayments: false, cod: true, offline: true }))
+      .catch((e) => e.name !== 'AbortError' && setCfg({ onlinePayments: false, offline: true }))
     return () => ctrl.abort()
   }, [])
   // Signed-in customers get their saved details filled in (once, and only into empty fields)
@@ -61,8 +61,6 @@ export default function CheckoutPage() {
   // The email of a signed-in customer cannot be changed here; the server enforces it too
   const emailLocked = !!user
   const online = !!cfg?.onlinePayments
-  // Cash on delivery: t-shirts from the collection only
-  const codOk = !!cfg?.cod && lines.every((l) => codAllowed(l.product))
 
   const set = (e) => {
     const { name, value } = e.target
@@ -83,7 +81,7 @@ export default function CheckoutPage() {
     return Object.keys(er).length === 0
   }
 
-  const submit = async (e, method = 'online') => {
+  const submit = async (e) => {
     e.preventDefault()
     if (placing) return
     if (!validate()) {
@@ -96,7 +94,6 @@ export default function CheckoutPage() {
       const res = await api('/api/shop-orders', {
         method: 'POST',
         json: {
-          payment: method,
           customer: {
             name: `${form.firstName.trim()} ${form.lastName.trim()}`,
             email: (emailLocked ? user.email : form.email).trim(),
@@ -121,27 +118,24 @@ export default function CheckoutPage() {
         pincode: form.pin.trim(),
       })
 
-      let payState = 'cod'
-      if (method === 'online') {
-        // "completed" only means the customer finished; the server confirms payment via webhook
-        let outcome = 'dismissed'
-        if (res.payment?.gatewayOrderId) outcome = await openCheckout(res.payment, { description: `Order ${res.orderId}` }).catch(() => 'dismissed')
-        if (outcome !== 'completed') {
-          // Not paid: the order must not exist. The server removes it unless a payment is still in progress.
-          const gone = await abandonOrder(res.orderId, (emailLocked ? user.email : form.email).trim(), res.payment?.gatewayOrderId).catch(() => null)
-          setFormError(gone?.removed ? PAYMENT_FAILED : PAYMENT_UNCONFIRMED)
-          setPlacing(false)
-          return
-        }
-        payState = 'completed'
+      // "completed" only means the customer finished; the server confirms payment via webhook
+      let outcome = 'dismissed'
+      if (res.payment?.gatewayOrderId) outcome = await openCheckout(res.payment, { description: `Order ${res.orderId}` }).catch(() => 'dismissed')
+      if (outcome !== 'completed') {
+        // Not paid: the order must not exist. The server removes it unless a payment is still in progress.
+        const gone = await abandonOrder(res.orderId, (emailLocked ? user.email : form.email).trim(), res.payment?.gatewayOrderId).catch(() => null)
+        setFormError(gone?.removed ? PAYMENT_FAILED : PAYMENT_UNCONFIRMED)
+        setPlacing(false)
+        return
       }
+      const payState = 'completed'
 
       const order = {
         number: res.orderId,
         placedAt: new Date().toISOString(),
         customer: { name: `${form.firstName} ${form.lastName}`, email: emailLocked ? user.email : form.email, phone: form.phone },
         address: { line1: form.address, line2: form.apartment, city: form.city, state: form.state, pin: form.pin },
-        payment: method,
+        payment: 'online',
         payState,
         items: lines.map((l) => ({ name: l.product.name, size: l.size, fit: FIT_LABEL[l.fit], color: l.colorName, qty: l.qty, price: l.price })),
         subtotal: res.subtotal, // server-verified amounts
@@ -298,19 +292,10 @@ export default function CheckoutPage() {
                 {placing ? 'Placing your order…' : `Pay & place order · ${formatPrice(total)}`}
               </button>
             )}
-            {codOk && (
-              <button
-                type="button"
-                className={`tc-btn ${online ? 'tc-btn--ghost' : 'tc-btn--primary'} tc-btn--block ${online ? '' : 'tc-btn--lg'}`}
-                disabled={placing || !cfg}
-                onClick={(e) => submit(e, 'cod')}
-              >
-                {placing ? 'Placing your order…' : online ? 'Cash on delivery' : `Place order (cash on delivery) · ${formatPrice(total)}`}
-              </button>
-            )}
-            {cfg && !online && !codOk && <p className="tc-error" role="alert">Online payment is not available yet, and cash on delivery is only offered for t-shirts.</p>}
-            {online && codOk && <p className="tc-hint">Pay online now (UPI, card, netbanking), or pay in cash when it arrives.</p>}
+            {cfg && !online && <p className="tc-error" role="alert">Online payment is not available right now. Please try again in a little while.</p>}
+            {online && <p className="tc-hint">Pay securely with UPI, card or netbanking.</p>}
             <ul className="tc-summary__trust">
+              <li> Free delivery</li>
               <li> Dispatched in {SITE.policy.dispatchHours} hours</li>
               <li> {SITE.policy.returnDays}-day returns on collection tees</li>
             </ul>

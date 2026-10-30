@@ -8,9 +8,7 @@ import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 
 export default function CartPage() {
-  const { lines, count, subtotal, shipping, total, updateQty, removeLine, freeShippingRemaining } = useStore()
-  const threshold = SITE.policy.freeShippingThreshold
-  const progress = Math.min(100, (subtotal / threshold) * 100)
+  const { lines, count, subtotal, shipping, total, updateQty, removeLine } = useStore()
   const inCart = new Set(lines.map((l) => l.productId))
   const suggestions = PRODUCTS.filter((p) => !inCart.has(p.id)).slice(0, 4)
 
@@ -47,19 +45,8 @@ export default function CartPage() {
             <section aria-label="Items in your bag">
               <div className="tc-ship tc-ship--card">
                 <p>
-                  {freeShippingRemaining > 0 ? (
-                    <>
-                      Add <strong>{formatPrice(freeShippingRemaining)}</strong> more for free shipping
-                    </>
-                  ) : (
-                    <>
- Your order qualifies for <strong>free shipping</strong>
-                    </>
-                  )}
+                  <strong>Free delivery</strong> on your order
                 </p>
-                <div className="tc-ship__bar">
-                  <span style={{ width: `${progress}%` }} />
-                </div>
               </div>
 
               <ul className="tc-lines tc-lines--page">
@@ -126,7 +113,7 @@ export default function CartPage() {
               </Link>
               <ul className="tc-summary__trust">
                 <li> Secure checkout</li>
-                <li> Cash on delivery on t-shirts</li>
+                <li> Free delivery on every order</li>
                 <li> {SITE.policy.returnDays}-day returns on collection tees</li>
               </ul>
             </aside>

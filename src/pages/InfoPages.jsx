@@ -103,21 +103,21 @@ const POLICIES = {
     intro: 'How and when your order reaches you.',
     sections: [
       ['Dispatch time', `Orders are printed and dispatched within ${SITE.policy.dispatchHours} hours of confirmation. Bulk and corporate orders are scheduled with you in advance.`],
-      ['Delivery charges', `Delivery is charged separately from the price of the t-shirts. It is free when the order value is above ${formatPrice(SITE.policy.freeShippingThreshold)}; below that a flat fee of ${formatPrice(SITE.policy.shippingFee)} applies. This is the same for collection t-shirts and custom studio orders.`],
+      ['Delivery charges', `Delivery is free on every order for t-shirts from the collection. Custom studio orders are charged delivery separately from the price of the t-shirt: free when the order value is above ${formatPrice(SITE.policy.freeShippingThreshold)}, otherwise a flat fee of ${formatPrice(SITE.policy.shippingFee)}. The delivery charge is shown before you pay.`],
       ['Delivery time', 'Delivery typically takes a few working days after dispatch, depending on your location.'],
       ['Tracking', 'When your order ships we email you a tracking number or link. You can also follow it any time on the Track Order page with your order number and email, or in your account if you signed in.'],
-      ['Cash on delivery', 'Cash on delivery is available only for t-shirts bought from the collection. Custom studio orders are made to order and are always paid online in advance.'],
+      ['Payment', 'All orders are paid online in advance, by UPI, card or netbanking. We do not offer cash on delivery.'],
     ],
   },
   returns: {
     title: 'Returns & exchanges',
     intro: 'Simple, fair and clearly written.',
     sections: [
-      ['Custom studio orders: no returns', 'T-shirts made in the Custom Studio cannot be returned, exchanged or refunded. Each one is printed to order from your own design and cannot be resold, so please check the design, placement, colour and size in the 3D preview before you pay. Custom orders are also never cash on delivery.'],
+      ['Custom studio orders: no returns', 'T-shirts made in the Custom Studio cannot be returned, exchanged or refunded. Each one is printed to order from your own design and cannot be resold, so please check the design, placement, colour and size in the 3D preview before you pay.'],
       ['Damaged or misprinted custom orders', 'If your custom tee arrives damaged, or the print does not match the design you approved in the studio, email us with your order number and clear photos and we will reprint or refund it at no cost.'],
       ['Collection t-shirts', `Unworn, unwashed t-shirts from the collection can be returned or exchanged within ${SITE.policy.returnDays} days of delivery, with tags and packaging intact.`],
       ['How to start a return', `Email ${SITE.contact.email} (or message us on Instagram) with your order number and a photo if the item is faulty. We will guide you through the next steps.`],
-      ['Refunds', 'Approved refunds are issued to your original payment method. Cash-on-delivery refunds are sent by bank transfer.'],
+      ['Refunds', 'Approved refunds are issued to your original payment method (the UPI account, card or bank account you paid from).'],
     ],
   },
   privacy: {
@@ -128,7 +128,7 @@ const POLICIES = {
       ['Accounts', 'If you sign in, we save your name, email and delivery details so your next checkout is filled in for you. You can sign in with a one-time email code, a password you choose, or Google (we never see your Google password). A cookie keeps you signed in on your device for up to 30 days.'],
       ['Payments', 'Online payments are handled by Razorpay. Your card, UPI or bank details go to Razorpay and are never seen or stored by us; we keep only the payment reference and its status.'],
       ['How we use it', 'To process and deliver your order, email you about it (order confirmation, shipping and completion), provide support, and, if you subscribe, send news about new collections. We do not sell your personal information.'],
-      ['Who we share it with', 'Only the services we need to run the shop: Razorpay for payments, Resend to send emails, Cloudflare for hosting and file storage, and the courier that delivers your parcel (your name, phone number and address).'],
+      ['Who we share it with', 'Only the services we need to run the shop: Razorpay for payments, Resend to send emails, Cloudflare for hosting and file storage, and Shiprocket and its courier partners, who deliver your parcel (your name, phone number and address).'],
       ['Your artwork', 'Artwork you upload is stored privately and used only to produce your order. It is not public and not shared. We keep the original file and a preview of your design with the order so it can be reprinted exactly, and delete it on request. Please only upload designs you own or have permission to print.'],
       ['Your choices', `You can ask us to access, correct or delete your information at any time by emailing ${SITE.contact.email}.`],
     ],
@@ -138,7 +138,7 @@ const POLICIES = {
     intro: 'The ground rules for using ThreadCraft.',
     sections: [
       ['Who we are', `ThreadCraft is an online clothing brand based in India. You can reach us by email at ${SITE.contact.email}${SITE.social.instagram ? ' or on Instagram' : ''}.`],
-      ['Orders', 'An order is confirmed once payment is received (or, for t-shirts from the collection, a cash-on-delivery order is verified). Custom studio orders are never cash on delivery and cannot be returned or exchanged (see our Returns policy). We may cancel an order if an item is unavailable or a design cannot be printed as requested, and will refund you in full.'],
+      ['Orders', 'All orders are prepaid: an order is confirmed once payment is received online (we do not offer cash on delivery). Custom studio orders cannot be returned or exchanged (see our Returns policy). We may cancel an order if an item is unavailable or a design cannot be printed as requested, and will refund you in full.'],
       ['Custom designs & IP', 'You are responsible for having the right to print any artwork, text or logos you submit. We may decline designs that infringe trademarks or copyright, or that contain unlawful or offensive content.'],
       ['Colours & print', 'Colours on screen may differ slightly from the printed result. Print placement is approved by you in the studio preview before checkout.'],
       ['Pricing', 'Prices are in Indian rupees. No GST is charged, because ThreadCraft is not registered for GST. Delivery is charged separately (see our Shipping policy). The price of a custom order is calculated from your design and confirmed when you place the order.'],

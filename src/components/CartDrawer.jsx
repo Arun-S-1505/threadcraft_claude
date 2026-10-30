@@ -4,11 +4,10 @@ import { Link } from 'react-router-dom'
 import Icon from './ui/Icon'
 import { ProductThumb } from './ui/ProductImage'
 import { formatPrice } from '../data/products'
-import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 
 export default function CartDrawer() {
-  const { drawerOpen, closeDrawer, lines, subtotal, count, updateQty, removeLine, freeShippingRemaining } = useStore()
+  const { drawerOpen, closeDrawer, lines, subtotal, count, updateQty, removeLine } = useStore()
 
   useEffect(() => {
     if (!drawerOpen) return
@@ -20,9 +19,6 @@ export default function CartDrawer() {
       document.body.style.overflow = ''
     }
   }, [drawerOpen, closeDrawer])
-
-  const threshold = SITE.policy.freeShippingThreshold
-  const progress = Math.min(100, (subtotal / threshold) * 100)
 
   return (
     <>
@@ -40,19 +36,8 @@ export default function CartDrawer() {
         {lines.length > 0 && (
           <div className="tc-ship">
             <p>
-              {freeShippingRemaining > 0 ? (
-                <>
-                  You're <strong>{formatPrice(freeShippingRemaining)}</strong> away from free shipping
-                </>
-              ) : (
-                <>
- You've unlocked <strong>free shipping</strong>
-                </>
-              )}
+              <strong>Free delivery</strong> on your order
             </p>
-            <div className="tc-ship__bar">
-              <span style={{ width: `${progress}%` }} />
-            </div>
           </div>
         )}
 
@@ -117,7 +102,7 @@ export default function CartDrawer() {
               <span>Subtotal</span>
               <strong>{formatPrice(subtotal)}</strong>
             </div>
-            <p className="tc-drawer__note">Shipping calculated at checkout.</p>
+            <p className="tc-drawer__note">Delivery is free.</p>
             <Link to="/checkout" className="tc-btn tc-btn--primary tc-btn--block" onClick={closeDrawer}>
               Checkout 
             </Link>

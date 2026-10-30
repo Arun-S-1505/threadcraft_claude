@@ -178,3 +178,11 @@ Admin view should rebuild the 3D shirt read-only from the saved spec (reuse `TSh
 
 ### No GST (owner, 2026-11-01)
 - The owner is **not registered for GST**, so no GST is shown or charged anywhere: the "GST included" rows (cart, checkout), "Inclusive of all taxes" (product page), "Taxes included" (cart drawer) and `SITE.policy.gstRate` were removed; the Terms say "No GST is charged, because ThreadCraft is not registered for GST." **If the owner registers for GST later, this must be revisited** (prices, invoices, a GST line, the Terms text).
+
+### Prepaid only, free collection delivery, new prices (owner, 2026-10-30) — this OVERRIDES the COD and shipping notes above
+- **No cash on delivery anywhere.** Every order (shop and custom) is paid online through Razorpay. `POST /api/shop-orders` ignores any `payment` field (an old browser sending `cod` still gets a normal prepaid order), refuses with 400 when the gateway is not configured, and `GET /api/config` no longer has `cod`. Checkout has one button, "Pay & place order". Old `cod` rows in the DB are still displayed by the admin/track pages (history only). `codAllowed`/`codFee` were deleted.
+- **Collection delivery is always free** (`priceCart` returns shipping 0; `StoreContext` shipping 0; no free-shipping progress bar in the bag). **Custom studio keeps its delivery charge** (`shippingFor`: free from ₹999 of garments, else ₹79; `SITE.policy.freeShippingThreshold/shippingFee` now mean custom studio only).
+- **Collection prices: oversized ₹649, regular ₹449** (`SHOP_PRICES`). Studio prices unchanged.
+- Announcement strip: "Free delivery on every collection order", "Secure payments · UPI, cards and netbanking", dispatch, GSM.
+- Courier: **Shiprocket** (named in the privacy policy). Orders are shipped by the owner in Shiprocket; the tracking number or link is pasted into the order in /admin (customer is emailed).
+- Smoke test: shop tests now run with a stub gateway (`GATEWAY` in `worker/test/smoke.mjs`).
