@@ -7,12 +7,14 @@ export const SCHEMA_VERSION = 1
 
 export const FITS = { regular: { gsm: 180 }, oversized: { gsm: 240 } }
 export const SIZES = ['S', 'M', 'L', 'XL'] // we do not sell XXL
-// Sizes we do not stock, per fit + colour (white oversized is not made in S)
-const UNAVAILABLE_SIZES = { 'oversized:#ffffff': ['S'] }
-export const sizesFor = (fit, hex) => {
-  const out = UNAVAILABLE_SIZES[`${fit}:${String(hex).toLowerCase()}`] || []
-  return SIZES.filter((s) => !out.includes(s))
-}
+// Fit + colour + size combinations that are NOT on sale until the owner enters a stock count above 0
+// in the admin Stock tab (white oversized S: none in stock yet). Everything else is on sale unless sold out.
+export const STOCK_GATED = [{ fit: 'oversized', colour: '#FFFFFF', size: 'S' }]
+export const comboKey = (fit, hex, size) => `${fit}|${String(hex).toUpperCase()}|${size}`
+const GATED_KEYS = new Set(STOCK_GATED.map((g) => comboKey(g.fit, g.colour, g.size)))
+export const isGated = (fit, hex, size) => GATED_KEYS.has(comboKey(fit, hex, size))
+/** Sizes on sale for a fit + colour. `enabled` = comboKey()s of gated combinations that currently have stock. */
+export const sizesFor = (fit, hex, enabled = []) => SIZES.filter((s) => !isGated(fit, hex, s) || enabled.includes(comboKey(fit, hex, s)))
 export const PRINT_TYPES = ['dtf']
 
 // Shop (collection) tee prices in INR, by fit. The Worker prices carts from these, never from the browser.
@@ -32,10 +34,10 @@ export const FIT_COLOURS = {
   oversized: ['white', 'black', 'blue'],
 }
 export const coloursForFit = (fit) => (FIT_COLOURS[fit] || []).map((k) => COLOURS[k])
-/** Every blank tee we make: [{ fit, colour (hex), size }] (used by the stock page and its checks) */
+/** Every blank tee we could stock: [{ fit, colour (hex), size }] (used by the stock page and its checks) */
 export const stockCombos = () =>
   Object.keys(FIT_COLOURS).flatMap((fit) =>
-    coloursForFit(fit).flatMap((c) => sizesFor(fit, c.hex).map((size) => ({ fit, colour: c.hex.toUpperCase(), size }))),
+    coloursForFit(fit).flatMap((c) => SIZES.map((size) => ({ fit, colour: c.hex.toUpperCase(), size }))),
   )
 // Names for display, including colours from earlier test orders that are no longer offered
 const LEGACY_NAMES = { '#1E293B': 'Slate Navy', '#D1D5DB': 'Silver Mist', '#0051d5': 'Royal Blue', '#15171F': 'Black' }

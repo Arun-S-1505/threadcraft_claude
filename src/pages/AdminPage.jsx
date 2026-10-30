@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import TShirt3D from '../components/TShirt3D'
 import { api, apiUrl } from '../lib/api'
 import { formatPrice } from '../data/products'
-import { colourName, PRINT_LABEL, FIT_LABEL, SIZES, coloursForFit, sizesFor } from '../../shared/designSpec'
+import { colourName, PRINT_LABEL, FIT_LABEL, SIZES, coloursForFit, isGated } from '../../shared/designSpec'
 
 /**
  * Owner-only area. The real protection is Cloudflare Access in front of this page plus the
@@ -388,6 +388,7 @@ function Stock({ onDenied }) {
       <p className="ad__note">
         Count your <strong>blank tees</strong> here (the same blanks are used for every design and for custom orders). Orders subtract automatically, and cancelling an order puts the tees back.
         Leave a box <strong>empty</strong> to not track that size: it can always be ordered. A box with <strong>0</strong> shows as sold out in the shop and studio.
+        A box that says <strong>off</strong> (white oversized S) is not on sale yet: enter how many you have and it goes on sale; clear it or enter 0 to stop selling it.
       </p>
       <div className="ad__tools">
         <strong>{total} tees in stock</strong>
@@ -410,7 +411,7 @@ function Stock({ onDenied }) {
                 {FIT_LABEL[fit]} · {c.name}
               </span>
               {SIZES.map((s) => {
-                if (!sizesFor(fit, c.hex).includes(s)) return <span key={s} className="ad__muted">not made</span>
+                const gated = isGated(fit, c.hex, s) // not on sale until a count above 0 is entered
                 const k = cellKey(fit, c.hex, s)
                 const v = valueOf(k)
                 const level = v === '' ? '' : Number(v) === 0 ? 'is-out' : Number(v) <= 5 ? 'is-low' : ''
@@ -419,7 +420,8 @@ function Stock({ onDenied }) {
                     key={s}
                     className={`tc-input ad__stockcell ${level}`}
                     inputMode="numeric"
-                    placeholder="–"
+                    placeholder={gated ? 'off' : '–'}
+                    title={gated ? 'Not on sale yet. Enter how many you have to start selling this size.' : undefined}
                     aria-label={`${FIT_LABEL[fit]} ${c.name} size ${s}`}
                     value={v}
                     onChange={(e) => setEdits((cur) => ({ ...cur, [k]: e.target.value.replace(/[^0-9]/g, '').slice(0, 5) }))}

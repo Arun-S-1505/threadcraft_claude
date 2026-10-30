@@ -4,7 +4,7 @@ import Icon from '../components/ui/Icon'
 import Reveal from '../components/ui/Reveal'
 import ProductCard from '../components/ProductCard'
 import { SIZES, formatPrice, getProduct, relatedProducts, codAllowed, photoUrl, VIEW_LABELS } from '../data/products'
-import { COLOURS, FIT_LABEL, SHOP_FITS, SHOP_PRICES, sizesFor } from '../../shared/designSpec'
+import { COLOURS, FIT_LABEL, SHOP_FITS, SHOP_PRICES } from '../../shared/designSpec'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 import { useStock } from '../lib/stock'
@@ -38,7 +38,7 @@ export default function ProductPage() {
   // Sizes and price depend on the fit.
   const chosen = COLOURS.black
   const current = product.views.includes(view) ? view : product.views[0] // photo being shown
-  const inStock = sizesFor(fit, chosen.hex)
+  const inStock = stock.sizes(fit, chosen.hex)
   const sizeSel = inStock.includes(size) && stock.left(fit, chosen.hex, size) !== 0 ? size : null // a size picked earlier may not exist (or may be sold out) in the new fit/colour
   const leftOfSel = sizeSel ? stock.left(fit, chosen.hex, sizeSel) : null
   const price = SHOP_PRICES[fit]

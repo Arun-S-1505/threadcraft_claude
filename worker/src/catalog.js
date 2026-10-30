@@ -8,7 +8,7 @@ export const MAX_LINE_QTY = 10
 export const MAX_LINES = 20
 
 /** Returns { error } or { items, subtotal, shipping, total, count }. */
-export function priceCart(rawItems, { cod = false } = {}) {
+export function priceCart(rawItems, { cod = false, enabled = [] } = {}) {
   if (!Array.isArray(rawItems) || rawItems.length === 0) return { error: 'Your bag is empty' }
   if (rawItems.length > MAX_LINES) return { error: 'Too many items in the bag' }
 
@@ -22,7 +22,7 @@ export function priceCart(rawItems, { cod = false } = {}) {
     if (!SHOP_FITS.includes(raw.fit)) return { error: `Choose a fit for ${product.name}` }
     const colour = coloursForFit(raw.fit).find((c) => c.hex === raw.color)
     if (!colour) return { error: `${product.name} is not available in that colour in the ${FIT_LABEL[raw.fit].toLowerCase()}` }
-    if (!sizesFor(raw.fit, colour.hex).includes(raw.size)) return { error: `${product.name} in ${colour.name} (${FIT_LABEL[raw.fit].toLowerCase()}) is not available in size ${raw.size}` }
+    if (!sizesFor(raw.fit, colour.hex, enabled).includes(raw.size)) return { error: `${product.name} in ${colour.name} (${FIT_LABEL[raw.fit].toLowerCase()}) is not available in size ${raw.size}` }
     if (cod && !codAllowed(product)) return { error: `Cash on delivery is only available for t-shirts. Please pay online for ${product.name}.` }
     items.push({ productId: product.id, slug: product.slug, name: product.name, size: raw.size, fit: raw.fit, fitLabel: FIT_LABEL[raw.fit], colour: colour.name, colourHex: colour.hex, qty, price: SHOP_PRICES[raw.fit] })
   }

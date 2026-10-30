@@ -1,10 +1,21 @@
 // Blank-tee stock, counted per fit + colour + size (every design is printed to order on the same blanks).
 // A combination with no row is "not tracked": it can always be ordered. A row with qty 0 is sold out.
-import { FIT_LABEL, colourName } from '../../shared/designSpec.js'
+import { FIT_LABEL, colourName, comboKey, isGated } from '../../shared/designSpec.js'
 
 const normColour = (hex) => String(hex || '').toUpperCase()
 const keyOf = (l) => `${l.fit}|${normColour(l.colour)}|${l.size}`
 const label = (l) => `${FIT_LABEL[l.fit] || l.fit}, ${colourName(l.colour)}, size ${l.size}`
+
+/** comboKey()s of gated sizes (e.g. white oversized S) that the owner has stocked (count above 0). */
+export async function enabledGated(db) {
+  try {
+    const rows = (await db.prepare(`SELECT fit, colour, size FROM stock WHERE qty > 0`).all()).results
+    return rows.filter((r) => isGated(r.fit, r.colour, r.size)).map((r) => comboKey(r.fit, r.colour, r.size))
+  } catch (err) {
+    console.error('stock enabled list failed', err)
+    return []
+  }
+}
 
 /** Merge lines with the same fit + colour + size. */
 export function mergeLines(lines) {

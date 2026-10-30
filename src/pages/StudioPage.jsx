@@ -7,7 +7,7 @@ import OrderDialog from '../components/OrderDialog'
 import { formatPrice } from '../data/products'
 import { SITE } from '../config/site'
 import { useStock } from '../lib/stock'
-import { GARMENT_PRICE, TIER_FEE, printFee, printSummary, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL, SIZES, COLOURS, coloursForFit, sizesFor } from '../../shared/designSpec'
+import { GARMENT_PRICE, TIER_FEE, printFee, printSummary, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL, SIZES, COLOURS, coloursForFit } from '../../shared/designSpec'
 
 /* ───────── Data ───────── */
 const fitOptions = [
@@ -106,7 +106,7 @@ export default function StudioPage() {
 
   // White oversized is not made in S: step up to M if S was selected
   const stock = useStock()
-  const sizeInStock = sizesFor(fit, selectedColor.hex)
+  const sizeInStock = stock.sizes(fit, selectedColor.hex)
   useEffect(() => {
     if (!sizeInStock.includes(selectedSize)) setSelectedSize('M')
   }, [sizeInStock, selectedSize])

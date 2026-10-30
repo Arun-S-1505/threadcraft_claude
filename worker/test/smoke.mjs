@@ -467,8 +467,8 @@ if (!REMOTE) {
   const item = { productId: 101, fit: 'oversized', size: 'M', color: '#1A1A1A', qty: 2 }
 
   const list0 = await (await adm('/stock')).json()
-  check('stock: 27 fit/colour/size combinations, none tracked yet', list0.items.length === 27 && list0.items.every((i) => i.qty === null), String(list0.items.length))
-  check('stock: unknown combination refused (white oversized has no S)', (await put([{ fit: 'oversized', colour: '#FFFFFF', size: 'S', qty: 1 }])).status === 400)
+  check('stock: 28 fit/colour/size combinations (incl. white oversized S), none tracked yet', list0.items.length === 28 && list0.items.every((i) => i.qty === null), String(list0.items.length))
+  check('stock: unknown size refused', (await put([{ fit: 'oversized', colour: '#1A1A1A', size: 'XXL', qty: 1 }])).status === 400)
   check('stock: negative count refused', (await put([{ fit: 'oversized', colour: '#1A1A1A', size: 'M', qty: -1 }])).status === 400)
   check('stock: counts saved', (await put([{ fit: 'oversized', colour: '#1A1A1A', size: 'M', qty: 3 }, { fit: 'oversized', colour: '#1A1A1A', size: 'S', qty: 0 }])).status === 200)
   check('stock: an order within stock is accepted', (await shopOrder(item)).status === 201)
@@ -492,6 +492,17 @@ if (!REMOTE) {
   await put([{ fit: 'oversized', colour: '#FFFFFF', size: 'M', qty: 5 }])
   const custom = await (await st('/api/orders', { method: 'POST', body: orderForm() })).json()
   check('stock: a custom order takes its tees (5 -> 3)', !!custom.orderId && (await qtyOf('oversized', '#FFFFFF', 'M')) === 3, JSON.stringify(custom))
+
+  // white oversized S is only on sale once the owner has stocked it
+  const whiteS = { productId: 106, fit: 'oversized', size: 'S', color: '#FFFFFF', qty: 1 }
+  const customS = () => st('/api/orders', { method: 'POST', body: orderForm({ size: 'S', quantity: 1 }) })
+  check('gated: white oversized S is off sale until stocked (shop and custom)', (await shopOrder(whiteS)).status === 400 && (await customS()).status === 400)
+  check('gated: the stock page accepts a count for it', (await put([{ fit: 'oversized', colour: '#FFFFFF', size: 'S', qty: 4 }])).status === 200)
+  check('gated: stocking it puts it on the public enabled list', (await (await st('/api/stock')).json()).enabled.includes('oversized|#FFFFFF|S'))
+  check('gated: orders for it are accepted once stocked (shop and custom)', (await shopOrder(whiteS)).status === 201 && (await customS()).status === 201)
+  check('gated: the count goes down (4 -> 2)', (await qtyOf('oversized', '#FFFFFF', 'S')) === 2)
+  await put([{ fit: 'oversized', colour: '#FFFFFF', size: 'S', qty: 0 }])
+  check('gated: with 0 it is off sale again', (await shopOrder(whiteS)).status === 400 && !(await (await st('/api/stock')).json()).enabled.includes('oversized|#FFFFFF|S'))
 
   // shipped / completed emails
   mails.length = 0

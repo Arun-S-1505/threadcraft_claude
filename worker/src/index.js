@@ -5,7 +5,7 @@ import { computePrice, validateDesignSpec, validateCustomer, SIZES, sizesFor, PL
 import { readUploads, MAX_REQUEST_BYTES } from './files.js'
 import { requireAdmin } from './auth.js'
 import { notifyNewOrder, notifyMessage, notifyStatus } from './email.js'
-import { reserveStock, releaseStock, linesFromOrder } from './stock.js'
+import { reserveStock, releaseStock, linesFromOrder, enabledGated } from './stock.js'
 import { gatewayEnabled, createGatewayOrder } from './payments.js'
 import { priceCart } from './catalog.js'
 import { runMonthlyBackup } from './backup.js'
@@ -92,7 +92,7 @@ app.post('/api/orders', rateLimit, async (c) => {
   const custErrors = validateCustomer({ ...customer, quantity })
   if (Object.keys(custErrors).length) return c.json({ error: Object.values(custErrors)[0] }, 400)
   if (!SIZES.includes(size)) return c.json({ error: 'Invalid size' }, 400)
-  if (!sizesFor(spec.garment.fit, spec.garment.colour).includes(size)) return c.json({ error: `Size ${size} is not available in this fit and colour` }, 400)
+  if (!sizesFor(spec.garment.fit, spec.garment.colour, await enabledGated(c.env.DB)).includes(size)) return c.json({ error: `Size ${size} is not available in this fit and colour` }, 400)
 
   const up = await readUploads(form)
   if (up.error) return c.json({ error: up.error }, 400)
@@ -190,8 +190,9 @@ app.get('/api/stock', async (c) => {
   } catch (err) {
     console.error('stock list failed', err)
   }
+  // `enabled` = sizes that are only on sale once stocked (e.g. white oversized S) and are in stock now
   c.header('Cache-Control', 'public, max-age=30')
-  return c.json({ low })
+  return c.json({ low, enabled: await enabledGated(c.env.DB) })
 })
 
 /* ───────── Public: what the storefront may offer ───────── */
@@ -206,7 +207,7 @@ app.post('/api/shop-orders', rateLimit, async (c) => {
   const method = payment === 'cod' ? 'cod' : 'online'
   if (method === 'online' && !gatewayEnabled(c.env)) return c.json({ error: 'Online payment is not available yet. Please choose cash on delivery.' }, 400)
 
-  const priced = priceCart(items, { cod: method === 'cod' })
+  const priced = priceCart(items, { cod: method === 'cod', enabled: await enabledGated(c.env.DB) })
   if (priced.error) return c.json({ error: priced.error }, 400)
   const custErrors = validateCustomer({ ...customer, quantity: priced.count })
   if (Object.keys(custErrors).length) return c.json({ error: Object.values(custErrors)[0] }, 400)

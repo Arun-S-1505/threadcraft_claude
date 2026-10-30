@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import { SITE } from '../config/site'
 import { getProductById } from '../data/products'
 import { SHOP_FITS, SHOP_PRICES, coloursForFit, sizesFor } from '../../shared/designSpec'
+import { useStock } from '../lib/stock'
 
 /**
  * Cart + wishlist state, persisted to localStorage.
@@ -51,6 +52,7 @@ export function StoreProvider({ children }) {
   const [cart, dispatch] = useReducer(cartReducer, null, () => read(CART_KEY, []))
   const [wishlist, setWishlist] = useState(() => read(WISH_KEY, []))
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const { enabled: stockedSizes } = useStock() // sizes that only exist once stocked (white oversized S)
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
 
@@ -91,7 +93,7 @@ export function StoreProvider({ children }) {
     const lines = cart
       // lines saved before fits existed were oversized
       .map((l) => ({ ...l, fit: l.fit || 'oversized', product: getProductById(l.productId) }))
-      .filter((l) => l.product && SHOP_FITS.includes(l.fit) && sizesFor(l.fit, l.color).includes(l.size) && coloursForFit(l.fit).some((c) => c.hex === l.color))
+      .filter((l) => l.product && SHOP_FITS.includes(l.fit) && sizesFor(l.fit, l.color, stockedSizes).includes(l.size) && coloursForFit(l.fit).some((c) => c.hex === l.color))
       .map((l) => ({ ...l, price: SHOP_PRICES[l.fit] }))
     const count = lines.reduce((n, l) => n + l.qty, 0)
     const subtotal = lines.reduce((n, l) => n + l.price * l.qty, 0)
@@ -120,7 +122,7 @@ export function StoreProvider({ children }) {
       toast,
       showToast,
     }
-  }, [cart, wishlist, drawerOpen, toast, addToCart, toggleWishlist, showToast])
+  }, [cart, wishlist, drawerOpen, toast, addToCart, toggleWishlist, showToast, stockedSizes])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
