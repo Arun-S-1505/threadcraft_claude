@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from './ui/Icon'
-import Garment from './ui/Garment'
+import { ProductThumb } from './ui/ProductImage'
 import { formatPrice } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
@@ -77,11 +77,7 @@ export default function CartDrawer() {
               {lines.map((l) => (
                 <li key={l.key} className="tc-line">
                   <Link to={`/product/${l.product.slug}`} onClick={closeDrawer} className="tc-line__img">
-                    <div className="tc-stage tc-stage--thumb">
-                      <div className="tc-stage__layer">
-                        <Garment type={l.product.type} color={l.color} art={l.product.art} />
-                      </div>
-                    </div>
+                    <ProductThumb product={l.product} />
                   </Link>
                   <div className="tc-line__info">
                     <div className="tc-line__top">

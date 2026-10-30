@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Garment from '../components/ui/Garment'
 import ProductCard from '../components/ProductCard'
-import { COLLECTIONS, PRODUCTS, COLOR_LIB } from '../data/products'
+import { COLLECTIONS, PRODUCTS, COLOR_LIB, photoUrl } from '../data/products'
 import { SITE } from '../config/site'
 
 /* ───────── Hero ───────── */
@@ -22,9 +22,9 @@ function Hero() {
           </div>
         </div>
         <div className="tc-hero__visual">
-          <div className="tc-hero__panel">
-            <Garment type="tee" color={COLOR_LIB.black.hex} art="needle" title="ThreadCraft signature tee" />
-          </div>
+          <Link to="/product/ronin-eclipse-tee" className="tc-hero__panel" aria-label="Shop the Ronin Eclipse Tee">
+            <img src={photoUrl('ronin-eclipse-tee', 'model-back')} alt="Model wearing the Ronin Eclipse oversized tee, back view" fetchPriority="high" decoding="async" />
+          </Link>
         </div>
       </div>
     </section>
@@ -47,7 +47,7 @@ function CollectionTiles() {
           {COLLECTIONS.map((c) => (
             <Link key={c.slug} to={`/shop?collection=${c.slug}`} className="tc-tile" aria-label={`Shop the ${c.title} collection`}>
               <div className="tc-tile__art" style={{ '--tile': c.color }}>
-                <Garment type={c.garment} color={c.color} art={c.art} />
+                <img src={photoUrl(c.cover.slug, c.cover.view)} alt="" loading="lazy" decoding="async" />
               </div>
               <div className="tc-tile__copy">
                 <h3>{c.title}</h3>

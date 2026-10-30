@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
-import Garment from '../components/ui/Garment'
+import { ProductThumb } from '../components/ui/ProductImage'
 import { formatPrice, codAllowed } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
@@ -252,11 +252,7 @@ export default function CheckoutPage() {
               {lines.map((l) => (
                 <li key={l.key}>
                   <div className="tc-mini__img">
-                    <div className="tc-stage tc-stage--thumb">
-                      <div className="tc-stage__layer">
-                        <Garment type={l.product.type} color={l.color} art={l.product.art} />
-                      </div>
-                    </div>
+                    <ProductThumb product={l.product} />
                     <span>{l.qty}</span>
                   </div>
                   <div>

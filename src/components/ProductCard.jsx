@@ -20,7 +20,7 @@ export default function ProductCard({ product }) {
     <article className="tc-card" onMouseLeave={() => setPickSize(false)}>
       <div className="tc-card__media">
         <Link to={`/product/${product.slug}`} className="tc-card__link" aria-label={`View ${product.name}`}>
-          <ProductImage product={product} color={color.hex} hoverBack />
+          <ProductImage product={product} hoverBack />
         </Link>
 
         {product.tag && <span className="tc-badge tc-card__tag">{product.tag}</span>}

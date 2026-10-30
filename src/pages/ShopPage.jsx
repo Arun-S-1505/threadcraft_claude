@@ -108,6 +108,7 @@ export default function ShopPage() {
                 ))}
               </ul>
             </div>
+            {ALL_COLORS.length > 1 && (
             <div className="tc-filters__group">
               <h2>Colour</h2>
               <div className="tc-swatches tc-swatches--wrap">
@@ -124,6 +125,7 @@ export default function ShopPage() {
                 ))}
               </div>
             </div>
+            )}
             {filtered && (
               <button className="tc-link" onClick={clearAll}>
                 Clear all filters

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from './ui/Icon'
-import Garment from './ui/Garment'
+import { ProductThumb } from './ui/ProductImage'
 import { COLLECTIONS, PRODUCTS, formatPrice } from '../data/products'
 
 const SUGGESTIONS = ['Oversized', 'Regular', 'Automotive', 'Minimal', 'Anime']
@@ -78,11 +78,7 @@ export default function SearchOverlay({ open, onClose }) {
               {results.map((p) => (
                 <li key={p.id}>
                   <Link to={`/product/${p.slug}`} onClick={onClose}>
-                    <div className="tc-stage tc-stage--thumb">
-                      <div className="tc-stage__layer">
-                        <Garment type={p.type} color={p.colors[0].hex} art={p.art} />
-                      </div>
-                    </div>
+                    <ProductThumb product={p} />
                     <div>
                       <strong>{p.name}</strong>
                       <span>

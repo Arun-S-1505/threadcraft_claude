@@ -51,3 +51,12 @@
 .tc-faq__grid { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); gap: clamp(32px, 6vw, 96px); align-items: start; }
 .tc-faq__grid .tc-btn { margin-top: 24px; }
 @media (max-width: 900px) { .tc-faq__grid { grid-template-columns: 1fr; } }
+
+/* Real product photography on the home page */
+.tc-hero__panel { position: relative; display: block; overflow: hidden; padding: 0; aspect-ratio: 4 / 5; }
+.tc-hero__panel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; }
+.tc-tile__art { padding: 0; overflow: hidden; }
+.tc-tile__art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; transition: transform 0.6s ease; }
+.tc-tile:hover .tc-tile__art img { transform: scale(1.03); }
+@media (max-width: 900px) { .tc-hero__panel { aspect-ratio: 4 / 4.6; } }
+@media (prefers-reduced-motion: reduce) { .tc-tile:hover .tc-tile__art img { transform: none; } }

@@ -4,7 +4,7 @@ import { SITE } from '../config/site'
 
 const STEPS = [
   { title: 'Design', text: 'Every graphic is drawn in-house, or prepared from your artwork so it prints sharp at full size.' },
-  { title: 'Print', text: 'High-resolution direct-to-garment printing puts fine detail and full colour onto the fabric.' },
+  { title: 'Print', text: 'High-resolution DTF (direct to film) printing puts fine detail and full colour onto the fabric.' },
   { title: 'Finish', text: 'Each piece is checked by hand for placement, colour and stitching before it is packed.' },
   { title: 'Ship', text: `Orders are dispatched within ${SITE.policy.dispatchHours} hours, with tracking on the way.` },
 ]

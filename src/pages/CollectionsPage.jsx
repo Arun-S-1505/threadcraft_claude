@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
-import Garment from '../components/ui/Garment'
 import Reveal from '../components/ui/Reveal'
-import { COLLECTIONS, PRODUCTS } from '../data/products'
+import { COLLECTIONS, PRODUCTS, photoUrl } from '../data/products'
 
 export default function CollectionsPage() {
   return (
@@ -26,8 +25,8 @@ export default function CollectionsPage() {
           const items = PRODUCTS.filter((p) => p.collection === c.slug)
           return (
             <Reveal key={c.slug} className={`tc-col ${i % 2 ? 'is-flip' : ''}`}>
-              <Link to={`/shop?collection=${c.slug}`} className={`tc-col__art ${c.tone === 'dark' ? 'is-dark' : ''}`} style={{ '--tile': c.color }} aria-label={`Shop ${c.title}`}>
-                <Garment type={c.garment} color={c.color} art={c.art} />
+              <Link to={`/shop?collection=${c.slug}`} className="tc-col__art" style={{ '--tile': c.color }} aria-label={`Shop ${c.title}`}>
+                <img src={photoUrl(c.cover.slug, c.cover.view)} alt="" loading="lazy" decoding="async" />
               </Link>
               <div className="tc-col__copy">
                 <p className="tc-eyebrow">

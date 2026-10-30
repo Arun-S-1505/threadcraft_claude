@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
-import Garment from '../components/ui/Garment'
 import Reveal from '../components/ui/Reveal'
 import ProductCard from '../components/ProductCard'
-import { SIZES, formatPrice, getProduct, relatedProducts, sizesForProduct, codAllowed } from '../data/products'
+import { SIZES, formatPrice, getProduct, relatedProducts, sizesForProduct, codAllowed, photoUrl, VIEW_LABELS } from '../data/products'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 import { NotFoundPage } from './InfoPages'
-
-const VIEWS = [
-  { id: 'front', label: 'Front' },
-  { id: 'back', label: 'Back' },
-  { id: 'detail', label: 'Print detail' },
-]
 
 export default function ProductPage() {
   const { slug } = useParams()
@@ -24,7 +17,7 @@ export default function ProductPage() {
   const [color, setColor] = useState(null)
   const [size, setSize] = useState(null)
   const [qty, setQty] = useState(1)
-  const [view, setView] = useState('front')
+  const [view, setView] = useState(null)
   const [error, setError] = useState(false)
   const [open, setOpen] = useState('details')
 
@@ -32,13 +25,14 @@ export default function ProductPage() {
     setColor(null)
     setSize(null)
     setQty(1)
-    setView('front')
+    setView(null)
     setError(false)
   }, [slug])
 
   if (!product) return <NotFoundPage />
 
   const chosen = color || product.colors[0]
+  const current = product.views.includes(view) ? view : product.views[0] // photo being shown
   const inStock = sizesForProduct(product, chosen.hex) // e.g. white oversized has no S
   const wished = isWished(product.id)
   const related = relatedProducts(product, 4)
@@ -63,7 +57,7 @@ export default function ProductPage() {
             <li>{product.type === 'oversized' ? SITE.policy.gsmOversized : SITE.policy.gsmRegular} GSM, 100% cotton</li>
           )}
           <li>{product.type === 'oversized' ? 'Boxy oversized fit with dropped shoulders' : 'Regular fit, round neck with ribbed collar'}</li>
-          <li>{product.art ? 'High-resolution direct-to-garment print' : 'Blank garment, ready for your design in the studio'}</li>
+          <li>Full-colour DTF print, made to order</li>
           <li>Printed to order in India</li>
         </ul>
       ),
@@ -102,23 +96,19 @@ export default function ProductPage() {
           {/* Gallery */}
           <div className="tc-gallery">
             <ul className="tc-gallery__thumbs" aria-label="Product views">
-              {VIEWS.map((v) => (
-                <li key={v.id}>
-                  <button className={view === v.id ? 'is-on' : ''} onClick={() => setView(v.id)} aria-label={v.label} aria-pressed={view === v.id}>
-                    <div className={`tc-stage tc-stage--thumb ${v.id === 'detail' ? 'tc-stage--detail' : ''}`}>
-                      <div className="tc-stage__layer">
-                        <Garment type={product.type} color={chosen.hex} art={product.art} view={v.id === 'back' ? 'back' : 'front'} />
-                      </div>
+              {product.views.map((v) => (
+                <li key={v}>
+                  <button className={current === v ? 'is-on' : ''} onClick={() => setView(v)} aria-label={VIEW_LABELS[v]} aria-pressed={current === v}>
+                    <div className="tc-stage tc-stage--thumb tc-stage--photo">
+                      <img className="tc-stage__img" src={photoUrl(product.slug, v, true)} alt={VIEW_LABELS[v]} loading="lazy" decoding="async" />
                     </div>
-                 </button>
+                  </button>
                 </li>
               ))}
             </ul>
-            <div className={`tc-gallery__main tc-stage ${view === 'detail' ? 'tc-stage--detail' : ''}`}>
+            <div className="tc-gallery__main tc-stage tc-stage--photo">
               {product.tag && <span className="tc-badge tc-card__tag">{product.tag}</span>}
-              <div className="tc-stage__layer" key={`${view}-${chosen.hex}`}>
-                <Garment type={product.type} color={chosen.hex} art={product.art} view={view === 'back' ? 'back' : 'front'} title={`${product.name} in ${chosen.name}, ${view} view`} />
-              </div>
+              <img className="tc-stage__img" key={current} src={photoUrl(product.slug, current)} alt={`${product.name} in ${chosen.name}, ${VIEW_LABELS[current].toLowerCase()}`} decoding="async" />
             </div>
           </div>
 

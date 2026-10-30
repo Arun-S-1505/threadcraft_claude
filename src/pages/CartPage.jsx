@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
-import Garment from '../components/ui/Garment'
+import { ProductThumb } from '../components/ui/ProductImage'
 import ProductCard from '../components/ProductCard'
 import { PRODUCTS, formatPrice } from '../data/products'
 import { SITE } from '../config/site'
@@ -65,11 +65,7 @@ export default function CartPage() {
                 {lines.map((l) => (
                   <li key={l.key} className="tc-line tc-line--page">
                     <Link to={`/product/${l.product.slug}`} className="tc-line__img">
-                      <div className="tc-stage tc-stage--thumb">
-                        <div className="tc-stage__layer">
-                          <Garment type={l.product.type} color={l.color} art={l.product.art} />
-                        </div>
-                      </div>
+                      <ProductThumb product={l.product} />
                     </Link>
                     <div className="tc-line__info">
                       <div className="tc-line__top">
