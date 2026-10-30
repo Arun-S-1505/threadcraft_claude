@@ -6,7 +6,8 @@ import { prepareOrder, submitOrder } from '../lib/orders'
 import { useAuth } from '../store/AuthContext'
 import { rememberDetails } from '../lib/remember'
 import { openCheckout } from '../lib/razorpay'
-import { MAX_QUANTITY, MIN_IMAGE_SIDE, unitPrice, validateCustomer } from '../../shared/designSpec'
+import { MAX_QUANTITY, MIN_IMAGE_SIDE, unitPrice, shippingFor, validateCustomer } from '../../shared/designSpec'
+import { SITE } from '../config/site'
 
 const EMPTY = { name: '', email: '', phone: '', address: '', city: '', pincode: '', quantity: 1, notes: '' }
 
@@ -20,7 +21,7 @@ export default function OrderDialog({ order, getCapture, onClose }) {
   const [result, setResult] = useState(null)
 
   const qty = Math.max(1, Math.min(MAX_QUANTITY, Number(form.quantity) || 1))
-  const unit = unitPrice({ fit, printType, itemCount: designList.length })
+  const unit = unitPrice({ fit, items: designList })
   const lowRes = designList.filter((d) => d.type === 'image' && d.width && Math.max(d.width, d.height) < MIN_IMAGE_SIDE)
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -130,7 +131,9 @@ export default function OrderDialog({ order, getCapture, onClose }) {
 
             <dl className="tc-order__total">
               <div><dt>{formatPrice(unit)} × {qty}</dt><dd>{formatPrice(unit * qty)}</dd></div>
-              <p>Final price is confirmed by us when the order is placed. Shipping is calculated separately.</p>
+              <div><dt>Delivery</dt><dd>{shippingFor(unit * qty, SITE.policy) === 0 ? 'Free' : formatPrice(shippingFor(unit * qty, SITE.policy))}</dd></div>
+              <div className="tc-order__grand"><dt>Total</dt><dd>{formatPrice(unit * qty + shippingFor(unit * qty, SITE.policy))}</dd></div>
+              <p>Delivery is free on orders above {formatPrice(SITE.policy.freeShippingThreshold)}. The server confirms the final amount when the order is placed.</p>
             </dl>
 
             {formError && <p className="tc-error" role="alert">{formError}</p>}

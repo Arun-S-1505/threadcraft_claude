@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { computePrice, validateDesignSpec, validateCustomer, SIZES, sizesFor, PLACEMENTS, PRINT_LABEL } from '../../shared/designSpec.js'
+import { SITE } from '../../src/config/site.js'
+import { computePrice, validateDesignSpec, validateCustomer, SIZES, sizesFor, PLACEMENTS, PRINT_LABEL, printSummary } from '../../shared/designSpec.js'
 import { readUploads, MAX_REQUEST_BYTES } from './files.js'
 import { requireAdmin } from './auth.js'
 import { notifyNewOrder, notifyMessage } from './email.js'
@@ -100,7 +101,7 @@ app.post('/api/orders', rateLimit, async (c) => {
   for (const view of up.previews.keys()) if (!PLACEMENTS.includes(view)) return c.json({ error: 'Invalid preview view' }, 400)
 
   // Price is always computed here; any total from the browser is ignored.
-  const { unit, total } = computePrice(spec, quantity)
+  const { unit, subtotal, shipping, total } = computePrice(spec, quantity, SITE.policy)
   const online = gatewayEnabled(c.env)
   const id = newOrderId()
   const at = now()
@@ -119,10 +120,10 @@ app.post('/api/orders', rateLimit, async (c) => {
   const stmts = [
     db
       .prepare(
-        `INSERT INTO orders (id, kind, created_at, updated_at, payment_method, customer_name, email, phone, address, city, pincode, notes, size, quantity, unit_price, total, spec_json)
-         VALUES (?1,'custom',?2,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15)`
+        `INSERT INTO orders (id, kind, created_at, updated_at, payment_method, customer_name, email, phone, address, city, pincode, notes, size, quantity, unit_price, shipping, total, spec_json)
+         VALUES (?1,'custom',?2,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)`
       )
-      .bind(id, at, online ? 'online' : 'invoice', customer.name.trim(), customer.email.trim().toLowerCase(), customer.phone.trim(), customer.address.trim(), customer.city.trim(), customer.pincode.trim(), (customer.notes || '').trim() || null, size, quantity, unit, total, JSON.stringify(spec)),
+      .bind(id, at, online ? 'online' : 'invoice', customer.name.trim(), customer.email.trim().toLowerCase(), customer.phone.trim(), customer.address.trim(), customer.city.trim(), customer.pincode.trim(), (customer.notes || '').trim() || null, size, quantity, unit, shipping, total, JSON.stringify(spec)),
     db.prepare(`INSERT INTO status_history (order_id, status, actor, at) VALUES (?,?,?,?)`).bind(id, 'new', 'customer', at),
   ]
   const link = (sha, mime, size_, kind, label) => {
@@ -145,10 +146,10 @@ app.post('/api/orders', rateLimit, async (c) => {
       total,
       customer,
       paymentNote,
-      lines: [`${spec.garment.fit} tee (${spec.garment.gsm} GSM), size ${size}, ${spec.items.length} print(s), ${PRINT_LABEL[spec.garment.printType] || spec.garment.printType}`, `Quantity ${quantity} × ₹${unit}`],
+      lines: [`${spec.garment.fit} tee (${spec.garment.gsm} GSM), size ${size}, ${spec.items.length} print(s) (${printSummary(spec.items)}), ${PRINT_LABEL[spec.garment.printType] || spec.garment.printType}`, `Quantity ${quantity} × ₹${unit} = ₹${subtotal}`, shipping ? `Delivery ₹${shipping}` : 'Free delivery'],
     })
   )
-  return c.json({ orderId: id, total, payment: await startPayment(c, id) }, 201)
+  return c.json({ orderId: id, subtotal, shipping, total, payment: await startPayment(c, id) }, 201)
 })
 
 // A signed-in customer's orders always carry the account's verified email, whatever the browser sent,

@@ -16,12 +16,13 @@ export const SITE = {
     // Leave empty ('') to hide. WhatsApp number in international format, digits only, e.g. '919876543210'
     whatsapp: '',
     phone: '',
+    // No street address or personal phone is published on purpose: customers reach us by email and Instagram.
     city: 'India',
   },
 
   // Leave empty ('') to hide the icon in the footer. Use full URLs.
   social: {
-    instagram: '',
+    instagram: 'https://www.instagram.com/threadcraft._store',
     facebook: '',
     youtube: '',
     x: '',

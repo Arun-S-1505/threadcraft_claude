@@ -174,3 +174,5 @@
   .sx__views button { padding: 10px 9px; font-size: 11px; letter-spacing: 0.02em; }
   .tc-order.tc-modal__card, .tc-order { padding: 22px 18px; }
 }
+.sx__pricehint { margin-top: 8px; font-size: 12.5px; }
+.tc-order__total .tc-order__grand { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); font-weight: 500; }

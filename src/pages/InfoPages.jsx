@@ -28,6 +28,7 @@ export function ContactPage() {
 
   const channels = [
     { icon: 'mail', title: 'Email', text: SITE.contact.email, href: `mailto:${SITE.contact.email}` },
+    SITE.social.instagram && { icon: 'instagram', title: 'Instagram', text: 'Message us on Instagram', href: SITE.social.instagram },
     SITE.contact.whatsapp && { icon: 'whatsapp', title: 'WhatsApp', text: 'Chat with us', href: `https://wa.me/${SITE.contact.whatsapp}` },
     SITE.contact.phone && { icon: 'phone', title: 'Phone', text: SITE.contact.phone, href: `tel:${SITE.contact.phone}` },
     { icon: 'pin', title: 'Based in', text: SITE.contact.city },
@@ -113,7 +114,7 @@ const POLICIES = {
     sections: [
       ['Stock items', `Unworn, unwashed items from the collection can be returned or exchanged within ${SITE.policy.returnDays} days of delivery, with tags and packaging intact.`],
       ['Custom-designed pieces', 'Because custom pieces are made specifically for you and cannot be resold to anyone else, they are not eligible for cash on delivery, and we cannot accept returns for change of mind. If your piece arrives damaged, misprinted or does not match your approved design, we will reprint or refund it at no cost.'],
-      ['How to start a return', `Email ${SITE.contact.email} with your order number and a photo if the item is faulty. We will guide you through the next steps.`],
+      ['How to start a return', `Email ${SITE.contact.email} (or message us on Instagram) with your order number and a photo if the item is faulty. We will guide you through the next steps.`],
       ['Refunds', 'Approved refunds are issued to your original payment method. Cash-on-delivery refunds are sent by bank transfer.'],
     ],
   },

@@ -40,11 +40,14 @@ export const PRINT_LABEL = { dtf: 'DTF (Direct to Film)' }
 export const PLACEMENTS = ['front', 'back', 'left_sleeve', 'right_sleeve']
 export const FONTS = ['Geist', 'Inter', 'serif', 'monospace']
 
-// Prices in INR (placeholders: replace with real prices)
-export const BASE_PRICES = { dtf: 899 }
-export const PRINT_FEES = { dtf: 199 }
-export const EXTRA_ITEM_FEE = 99
-export const FIT_PRICE = { regular: 0, oversized: 200 } // oversized uses the heavier 240 GSM fabric
+// Custom studio prices in INR (owner, 2026-10-30)
+// Blank tee by fit, plus a fee for EACH design (print) by its size. Size follows where the print goes:
+// the back is large, the front chest is medium, a sleeve is small. Delivery is charged separately.
+export const GARMENT_PRICE = { oversized: 350, regular: 250 }
+export const PRINT_TIER = { back: 'large', front: 'medium', left_sleeve: 'small', right_sleeve: 'small' }
+export const TIER_FEE = { large: 80, medium: 50, small: 30 }
+export const TIER_ORDER = ['large', 'medium', 'small']
+export const printFeeFor = (placement) => TIER_FEE[PRINT_TIER[placement]] ?? 0
 
 // Upload rules
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024
@@ -53,19 +56,32 @@ export const MIN_IMAGE_SIDE = 1000 // below this the print will look soft
 export const MAX_ITEMS = 8
 export const MAX_QUANTITY = 500
 
-export function printFee(count, type) {
-  if (!count) return 0
-  return PRINT_FEES[type] + Math.max(0, count - 1) * EXTRA_ITEM_FEE
+/** Total print fee for one garment. `items` = anything with a `placement` (the design list or spec.items). */
+export function printFee(items) {
+  return items.reduce((n, it) => n + printFeeFor(it.placement), 0)
 }
 
-/** Price of ONE garment with the given spec. */
-export function unitPrice({ fit, printType, itemCount }) {
-  return BASE_PRICES[printType] + FIT_PRICE[fit] + printFee(itemCount, printType)
+/** e.g. "1 large, 2 small" */
+export function printSummary(items) {
+  const counts = {}
+  for (const it of items) counts[PRINT_TIER[it.placement]] = (counts[PRINT_TIER[it.placement]] || 0) + 1
+  return TIER_ORDER.filter((t) => counts[t]).map((t) => `${counts[t]} ${t}`).join(', ')
 }
 
-export function computePrice(spec, quantity = 1) {
-  const unit = unitPrice({ fit: spec.garment.fit, printType: spec.garment.printType, itemCount: spec.items.length })
-  return { unit, quantity, total: unit * quantity }
+/** Price of ONE garment with the given fit and designs. */
+export function unitPrice({ fit, items }) {
+  return GARMENT_PRICE[fit] + printFee(items)
+}
+
+/** Delivery: free from the threshold, otherwise a flat fee. `policy` = SITE.policy */
+export const shippingFor = (subtotal, policy) => (subtotal >= policy.freeShippingThreshold ? 0 : policy.shippingFee)
+
+/** Full order price. Pass SITE.policy to include delivery in `total`. */
+export function computePrice(spec, quantity = 1, policy = null) {
+  const unit = unitPrice({ fit: spec.garment.fit, items: spec.items })
+  const subtotal = unit * quantity
+  const shipping = policy ? shippingFor(subtotal, policy) : 0
+  return { unit, quantity, subtotal, shipping, total: subtotal + shipping }
 }
 
 /**

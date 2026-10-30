@@ -2,7 +2,8 @@
 // With API=http://localhost:8787 it instead hits a running `wrangler dev` (needs .dev.vars).
 import zlib from 'node:zlib'
 import crypto from 'node:crypto'
-import { buildDesignSpec, computePrice } from '../../shared/designSpec.js'
+import { buildDesignSpec, computePrice, unitPrice, shippingFor } from '../../shared/designSpec.js'
+import { SITE } from '../../src/config/site.js'
 import { makeApi } from './harness.mjs'
 
 const REMOTE = process.env.API
@@ -59,11 +60,16 @@ const json = { 'Content-Type': 'application/json' }
 
 // Public ordering
 check('health', (await api(`/api/health`)).ok)
-const expected = computePrice(spec, 2).total
+const expected = computePrice(spec, 2, SITE.policy).total
 const ok = await post(orderForm({ total: 1 })) // a fake client total must be ignored
 const okBody = await ok.json()
 check('valid order -> 201', ok.status === 201, JSON.stringify(okBody))
 check('price recomputed on server', okBody.total === expected, `${okBody.total} vs ${expected}`)
+check('studio price: oversized 350 + front 50 + back 80 = 480 each; 2 = 960 + 79 delivery = 1039', okBody.subtotal === 960 && okBody.shipping === 79 && okBody.total === 1039, JSON.stringify(okBody))
+const it = (placement) => ({ placement })
+check('studio price: regular tee 250 + one large (back) print 80 = 330', unitPrice({ fit: 'regular', items: [it('back')] }) === 330)
+check('studio price: oversized 350 + medium 50 + small 30 + small 30 = 460', unitPrice({ fit: 'oversized', items: [it('front'), it('left_sleeve'), it('right_sleeve')] }) === 460)
+check('delivery: free at 999, 79 below', shippingFor(999, SITE.policy) === 0 && shippingFor(998, SITE.policy) === 79)
 const id = okBody.orderId
 
 const evilSvg = Buffer.from('<svg><script>1</script></svg>')

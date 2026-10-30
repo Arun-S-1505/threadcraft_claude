@@ -5,7 +5,8 @@ import Navbar from '../components/Navbar'
 import Icon from '../components/ui/Icon'
 import OrderDialog from '../components/OrderDialog'
 import { formatPrice } from '../data/products'
-import { BASE_PRICES, FIT_PRICE, printFee, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL, SIZES, COLOURS, coloursForFit, sizesFor } from '../../shared/designSpec'
+import { SITE } from '../config/site'
+import { GARMENT_PRICE, TIER_FEE, printFee, printSummary, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL, SIZES, COLOURS, coloursForFit, sizesFor } from '../../shared/designSpec'
 
 /* ───────── Data ───────── */
 const fitOptions = [
@@ -25,13 +26,18 @@ const placementOptions = [
 const MAX_SUBLIMATION = 0.55
 
 const PlacementPicker = ({ value, onPick }) => (
-  <div className="sx-seg sx-seg--wrap" role="group" aria-label="Placement area">
-    {placementOptions.map((opt) => (
-      <button key={opt.value} type="button" className={value === opt.value ? 'is-on' : ''} aria-pressed={value === opt.value} onClick={() => onPick(opt.value)}>
-        {opt.label}
-      </button>
-    ))}
-  </div>
+  <>
+    <div className="sx-seg sx-seg--wrap" role="group" aria-label="Placement area">
+      {placementOptions.map((opt) => (
+        <button key={opt.value} type="button" className={value === opt.value ? 'is-on' : ''} aria-pressed={value === opt.value} onClick={() => onPick(opt.value)}>
+          {opt.label}
+        </button>
+      ))}
+    </div>
+    <p className="sx__muted sx__pricehint">
+      Print price for each design: back {formatPrice(TIER_FEE.large)}, front {formatPrice(TIER_FEE.medium)}, sleeve {formatPrice(TIER_FEE.small)}.
+    </p>
+  </>
 )
 
 const Slider = ({ label, value, shown, min, max, onChange }) => (
@@ -104,11 +110,11 @@ export default function StudioPage() {
   }, [sizeInStock, selectedSize])
 
   // Pricing
-  const basePrice = BASE_PRICES[printType] + FIT_PRICE[fit]
+  const basePrice = GARMENT_PRICE[fit]
   const fitInfo = fitOptions.find((f) => f.value === fit)
   const hasDesign = designList.length > 0
-  const printFeeTotal = printFee(designList.length, printType)
-  const totalPrice = unitPrice({ fit, printType, itemCount: designList.length })
+  const printFeeTotal = printFee(designList)
+  const totalPrice = unitPrice({ fit, items: designList })
 
   // ─── Select View & Placement ───
   const handleViewAngleSwitch = (angle) => {
@@ -504,14 +510,14 @@ export default function StudioPage() {
           <footer className="sx__foot">
             <dl>
               <div><dt>{fitInfo.label} tee ({selectedSize})</dt><dd>{formatPrice(basePrice)}</dd></div>
-              <div><dt>Print ({designList.length} {designList.length === 1 ? 'item' : 'items'})</dt><dd>{hasDesign ? formatPrice(printFeeTotal) : '—'}</dd></div>
+              <div><dt>{hasDesign ? `Prints (${printSummary(designList)})` : 'Prints'}</dt><dd>{hasDesign ? formatPrice(printFeeTotal) : '—'}</dd></div>
               <div className="sx__total"><dt>Total</dt><dd>{formatPrice(totalPrice)}</dd></div>
             </dl>
             <button type="button" className="tc-btn tc-btn--primary tc-btn--block sx__submit" disabled={!hasDesign} onClick={() => setOrderOpen(true)}>
               {hasDesign ? 'Submit order' : 'Add a design to order'}
             </button>
             <p>
-              Ordering 20 or more? See <Link to="/bulk-orders" className="tc-link">bulk orders</Link>.
+              Delivery is extra and free on orders above {formatPrice(SITE.policy.freeShippingThreshold)}. Ordering 20 or more? See <Link to="/bulk-orders" className="tc-link">bulk orders</Link>.
             </p>
           </footer>
         </aside>
