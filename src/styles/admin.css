@@ -49,3 +49,11 @@
 .ad__msgs li.is-done { opacity: 0.55; }
 .ad__msghead { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
 @media (max-width: 900px) { .ad__grid, .ad__two { grid-template-columns: 1fr; } .ad__bar { padding: 12px 16px; gap: 14px; } }
+
+/* Stock tab */
+.ad__stockrow { display: grid; grid-template-columns: 1.6fr repeat(4, minmax(80px, 1fr)); gap: 12px; align-items: center; min-width: 620px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.ad__stockname { display: flex; align-items: center; gap: 10px; }
+.ad__stockname i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--line-strong); }
+.ad__stockcell { height: 38px; text-align: center; font-variant-numeric: tabular-nums; }
+.ad__stockcell.is-low { background: #fbf1d9; border-color: #e0b84c; }
+.ad__stockcell.is-out { background: #f9e1e0; border-color: var(--danger); }

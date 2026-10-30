@@ -6,6 +6,7 @@ import Icon from '../components/ui/Icon'
 import OrderDialog from '../components/OrderDialog'
 import { formatPrice } from '../data/products'
 import { SITE } from '../config/site'
+import { useStock } from '../lib/stock'
 import { GARMENT_PRICE, TIER_FEE, printFee, printSummary, unitPrice, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_ITEMS, PRINT_LABEL, SIZES, COLOURS, coloursForFit, sizesFor } from '../../shared/designSpec'
 
 /* ───────── Data ───────── */
@@ -104,6 +105,7 @@ export default function StudioPage() {
   }
 
   // White oversized is not made in S: step up to M if S was selected
+  const stock = useStock()
   const sizeInStock = sizesFor(fit, selectedColor.hex)
   useEffect(() => {
     if (!sizeInStock.includes(selectedSize)) setSelectedSize('M')
@@ -352,7 +354,7 @@ export default function StudioPage() {
                 <div className="sx__label"><label>Size</label></div>
                 <div className="tc-sizes">
                   {SIZES.map((size) => (
-                    <button key={size} type="button" className={`tc-size ${selectedSize === size ? 'is-on' : ''}`} aria-pressed={selectedSize === size} disabled={!sizeInStock.includes(size)} title={sizeInStock.includes(size) ? undefined : 'Not available in this fit and colour'} onClick={() => setSelectedSize(size)}>
+                    <button key={size} type="button" className={`tc-size ${selectedSize === size ? 'is-on' : ''}`} aria-pressed={selectedSize === size} disabled={!sizeInStock.includes(size) || stock.left(fit, selectedColor.hex, size) === 0} title={!sizeInStock.includes(size) ? 'Not available in this fit and colour' : stock.left(fit, selectedColor.hex, size) === 0 ? 'Sold out' : undefined} onClick={() => setSelectedSize(size)}>
                       {size}
                     </button>
                   ))}

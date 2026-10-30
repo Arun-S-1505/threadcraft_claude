@@ -32,6 +32,11 @@ export const FIT_COLOURS = {
   oversized: ['white', 'black', 'blue'],
 }
 export const coloursForFit = (fit) => (FIT_COLOURS[fit] || []).map((k) => COLOURS[k])
+/** Every blank tee we make: [{ fit, colour (hex), size }] (used by the stock page and its checks) */
+export const stockCombos = () =>
+  Object.keys(FIT_COLOURS).flatMap((fit) =>
+    coloursForFit(fit).flatMap((c) => sizesFor(fit, c.hex).map((size) => ({ fit, colour: c.hex.toUpperCase(), size }))),
+  )
 // Names for display, including colours from earlier test orders that are no longer offered
 const LEGACY_NAMES = { '#1E293B': 'Slate Navy', '#D1D5DB': 'Silver Mist', '#0051d5': 'Royal Blue', '#15171F': 'Black' }
 export const colourName = (hex) => Object.values(COLOURS).find((c) => c.hex.toLowerCase() === String(hex).toLowerCase())?.name || LEGACY_NAMES[hex] || hex

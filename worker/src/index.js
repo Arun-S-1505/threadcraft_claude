@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { SITE } from '../../src/config/site.js'
-import { computePrice, validateDesignSpec, validateCustomer, SIZES, sizesFor, PLACEMENTS, PRINT_LABEL, printSummary } from '../../shared/designSpec.js'
+import { computePrice, validateDesignSpec, validateCustomer, SIZES, sizesFor, PLACEMENTS, PRINT_LABEL, printSummary, stockCombos } from '../../shared/designSpec.js'
 import { readUploads, MAX_REQUEST_BYTES } from './files.js'
 import { requireAdmin } from './auth.js'
-import { notifyNewOrder, notifyMessage } from './email.js'
+import { notifyNewOrder, notifyMessage, notifyStatus } from './email.js'
+import { reserveStock, releaseStock, linesFromOrder } from './stock.js'
 import { gatewayEnabled, createGatewayOrder } from './payments.js'
 import { priceCart } from './catalog.js'
 import { runMonthlyBackup } from './backup.js'
@@ -135,7 +136,14 @@ app.post('/api/orders', rateLimit, async (c) => {
     else link(it.rasterSha256, 'image/png', up.files.get(it.rasterSha256).bytes.length, 'text_raster', it.id)
   }
   for (const [view, p] of up.previews) link(p.sha256, p.mime, p.bytes.length, 'preview', view)
-  await db.batch(stmts)
+  const held = await reserveStock(db, [{ fit: spec.garment.fit, colour: spec.garment.colour, size, qty: quantity }], at)
+  if (held.error) return c.json({ error: held.error }, 409)
+  try {
+    await db.batch(stmts)
+  } catch (err) {
+    await releaseStock(db, held.taken, at)
+    throw err
+  }
 
   const paymentNote = online
     ? 'Payment: online. If you have not completed payment yet, use the Track Order page to pay.'
@@ -174,6 +182,18 @@ async function startPayment(c, id) {
   }
 }
 
+/* ───────── Public: sizes that are sold out or nearly (counts are only shown when 3 or fewer are left) ───────── */
+app.get('/api/stock', async (c) => {
+  let low = []
+  try {
+    low = (await c.env.DB.prepare(`SELECT fit, colour, size, qty FROM stock WHERE qty <= 3`).all()).results
+  } catch (err) {
+    console.error('stock list failed', err)
+  }
+  c.header('Cache-Control', 'public, max-age=30')
+  return c.json({ low })
+})
+
 /* ───────── Public: what the storefront may offer ───────── */
 app.get('/api/config', (c) => c.json({ onlinePayments: gatewayEnabled(c.env), cod: true, googleClientId: c.env.GOOGLE_CLIENT_ID || null }))
 
@@ -193,6 +213,9 @@ app.post('/api/shop-orders', rateLimit, async (c) => {
 
   const id = newOrderId()
   const at = now()
+  const held = await reserveStock(c.env.DB, priced.items.map((i) => ({ fit: i.fit, colour: i.colourHex, size: i.size, qty: i.qty })), at)
+  if (held.error) return c.json({ error: held.error }, 409)
+  try {
   await c.env.DB.batch([
     c.env.DB
       .prepare(
@@ -202,6 +225,10 @@ app.post('/api/shop-orders', rateLimit, async (c) => {
       .bind(id, at, method, customer.name.trim(), customer.email.trim().toLowerCase(), customer.phone.trim(), customer.address.trim(), customer.city.trim(), customer.pincode.trim(), (customer.notes || '').trim() || null, priced.count, priced.subtotal, priced.shipping, priced.total, JSON.stringify({ items: priced.items })),
     c.env.DB.prepare(`INSERT INTO status_history (order_id, status, actor, at) VALUES (?,?,?,?)`).bind(id, 'new', 'customer', at),
   ])
+  } catch (err) {
+    await releaseStock(c.env.DB, held.taken, at)
+    throw err
+  }
 
   c.executionCtx.waitUntil(
     notifyNewOrder(c.env, {
@@ -307,13 +334,58 @@ admin.patch('/orders/:id', async (c) => {
   const tracking = (body.trackingNo || '').toString().trim().slice(0, 300) || null
   if (tracking && /^[a-z][a-z0-9+.-]*:/i.test(tracking) && !/^https?:\/\//i.test(tracking)) return c.json({ error: 'A tracking link must start with http:// or https://' }, 400)
   if (body.status === 'shipped' && !tracking) return c.json({ error: 'Tracking number is required when shipping' }, 400)
+  const before = await c.env.DB.prepare(`SELECT status, kind, size, quantity, spec_json, tracking_no, customer_name, email FROM orders WHERE id = ?`).bind(id).first()
+  if (!before) return c.json({ error: 'Not found' }, 404)
   const at = now()
-  const res = await c.env.DB.prepare(`UPDATE orders SET status = ?1, tracking_no = COALESCE(?2, tracking_no), updated_at = ?3 WHERE id = ?4`).bind(body.status, tracking, at, id).run()
-  if (!res.meta.changes) return c.json({ error: 'Not found' }, 404)
+  await c.env.DB.prepare(`UPDATE orders SET status = ?1, tracking_no = COALESCE(?2, tracking_no), updated_at = ?3 WHERE id = ?4`).bind(body.status, tracking, at, id).run()
   // Completing a cash-on-delivery order means the cash was collected
   if (body.status === 'delivered') await c.env.DB.prepare(`UPDATE orders SET payment_status = 'paid' WHERE id = ?1 AND payment_method = 'cod' AND payment_status = 'unpaid'`).bind(id).run()
   await c.env.DB.prepare(`INSERT INTO status_history (order_id, status, tracking_no, actor, at) VALUES (?,?,?,?,?)`).bind(id, body.status, tracking, c.get('admin'), at).run()
-  return c.json({ ok: true })
+
+  // Cancelling puts the tees back in stock; re-opening a cancelled order takes them again (best effort)
+  // (a stock problem must never stop the status change)
+  if (body.status === 'cancelled' && before.status !== 'cancelled') await releaseStock(c.env.DB, linesFromOrder(before), at).catch((err) => console.error('stock release failed', err))
+  if (before.status === 'cancelled' && body.status !== 'cancelled') await reserveStock(c.env.DB, linesFromOrder(before), at)
+
+  // Customer email when the order ships (or the tracking changes) and when it is completed
+  const newTracking = tracking || before.tracking_no
+  const shippedNow = body.status === 'shipped' && (before.status !== 'shipped' || (tracking && tracking !== before.tracking_no))
+  const completedNow = body.status === 'delivered' && before.status !== 'delivered'
+  if (shippedNow || completedNow) {
+    c.executionCtx.waitUntil(notifyStatus(c.env, { id, name: before.customer_name, email: before.email, status: body.status, tracking: newTracking }))
+  }
+  return c.json({ ok: true, emailed: Boolean(shippedNow || completedNow) })
+})
+
+// Blank-tee stock: every fit/colour/size we make, with its count (null = not tracked)
+admin.get('/stock', async (c) => {
+  const rows = (await c.env.DB.prepare(`SELECT fit, colour, size, qty FROM stock`).all()).results
+  const have = new Map(rows.map((r) => [`${r.fit}|${r.colour}|${r.size}`, r.qty]))
+  return c.json({ items: stockCombos().map((k) => ({ ...k, qty: have.get(`${k.fit}|${k.colour}|${k.size}`) ?? null })) })
+})
+
+admin.put('/stock', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  if (!Array.isArray(body.items) || body.items.length > 100) return c.json({ error: 'Invalid request' }, 400)
+  const valid = new Set(stockCombos().map((k) => `${k.fit}|${k.colour}|${k.size}`))
+  const at = now()
+  const stmts = []
+  for (const it of body.items) {
+    const colour = String(it.colour || '').toUpperCase()
+    if (!valid.has(`${it.fit}|${colour}|${it.size}`)) return c.json({ error: 'Unknown size, colour or fit' }, 400)
+    if (it.qty === null) {
+      stmts.push(c.env.DB.prepare(`DELETE FROM stock WHERE fit = ?1 AND colour = ?2 AND size = ?3`).bind(it.fit, colour, it.size))
+    } else {
+      if (!Number.isInteger(it.qty) || it.qty < 0 || it.qty > 100000) return c.json({ error: 'Stock must be a whole number, 0 or more' }, 400)
+      stmts.push(
+        c.env.DB
+          .prepare(`INSERT INTO stock (fit, colour, size, qty, updated_at) VALUES (?1,?2,?3,?4,?5) ON CONFLICT (fit, colour, size) DO UPDATE SET qty = ?4, updated_at = ?5`)
+          .bind(it.fit, colour, it.size, it.qty, at),
+      )
+    }
+  }
+  if (stmts.length) await c.env.DB.batch(stmts)
+  return c.json({ ok: true, saved: stmts.length })
 })
 
 // Streams a stored file. Only hashes that belong to an order are served.

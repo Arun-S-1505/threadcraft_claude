@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SITE } from '../config/site'
+import { api } from '../lib/api'
 
 const socials = [
   { key: 'instagram', icon: 'instagram', label: 'Instagram' },
@@ -12,11 +13,19 @@ export default function Footer() {
   const [email, setEmail] = useState('')
   const [joined, setJoined] = useState(false)
 
-  const submit = (e) => {
+  const [failed, setFailed] = useState(false)
+
+  // A signup is sent to the owner as a message (email + the admin Messages tab); there is no mailing-list service yet.
+  const submit = async (e) => {
     e.preventDefault()
     if (!/^\S+@\S+\.\S+$/.test(email)) return
-    // TODO: connect to your mailing-list provider (Mailchimp, Brevo, Klaviyo …)
-    setJoined(true)
+    setFailed(false)
+    try {
+      await api('/api/contact', { method: 'POST', json: { name: 'Newsletter signup', email, subject: 'Newsletter', message: 'Please add me to the newsletter.' } })
+      setJoined(true)
+    } catch {
+      setFailed(true)
+    }
   }
 
   const activeSocials = socials.filter((s) => SITE.social[s.key])
@@ -80,6 +89,7 @@ export default function Footer() {
                 </label>
                 <input id="footer-email" type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
                 <button type="submit">Subscribe</button>
+                {failed && <p className="tc-error" role="alert">Sorry, that did not go through. Please try again.</p>}
               </form>
             )}
           </div>

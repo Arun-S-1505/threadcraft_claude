@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import Icon from './ui/Icon'
 import ProductImage from './ui/ProductImage'
 import { formatPrice } from '../data/products'
+import { useStock } from '../lib/stock'
 import { sizesFor, COLOURS } from '../../shared/designSpec'
 import { useStore } from '../store/StoreContext'
 
 export default function ProductCard({ product, hanger = false }) {
   const { addToCart, toggleWishlist, isWished } = useStore()
   const [pickSize, setPickSize] = useState(false)
+  const stock = useStock()
   const wished = isWished(product.id)
 
   const quickAdd = (size) => {
@@ -40,7 +42,7 @@ export default function ProductCard({ product, hanger = false }) {
           {pickSize ? (
             <div className="tc-card__sizes" role="group" aria-label="Choose a size">
               {sizesFor('oversized', COLOURS.black.hex).map((s) => (
-                <button key={s} type="button" onClick={() => quickAdd(s)} className="tc-size tc-size--sm">
+                <button key={s} type="button" onClick={() => quickAdd(s)} disabled={stock.left('oversized', COLOURS.black.hex, s) === 0} title={stock.left('oversized', COLOURS.black.hex, s) === 0 ? 'Sold out' : undefined} className="tc-size tc-size--sm">
                   {s}
                 </button>
               ))}

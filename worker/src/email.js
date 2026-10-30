@@ -48,6 +48,32 @@ export async function notifyNewOrder(env, o) {
   ])
 }
 
+/**
+ * Customer email when an order ships or is completed. Best-effort: never blocks the admin action.
+ * o = { id, name, email, status: 'shipped' | 'delivered', tracking }
+ */
+export async function notifyStatus(env, o) {
+  if (!o.email || o.email.endsWith('@invalid')) return // personal data was erased
+  const site = (env.ALLOWED_ORIGIN || '').replace(/\/$/, '')
+  const trackPage = site ? `<a href="${esc(site)}/track-order">Track Order page</a>` : 'Track Order page'
+  const isLink = /^https?:\/\//i.test(o.tracking || '')
+  let subject
+  let body
+  if (o.status === 'shipped') {
+    subject = `Your ThreadCraft order ${o.id} has shipped`
+    const track = o.tracking
+      ? isLink
+        ? `<p><a href="${esc(o.tracking)}"><strong>Track your parcel</strong></a></p>`
+        : `<p>Tracking number: <strong>${esc(o.tracking)}</strong></p>`
+      : ''
+    body = `<p>Hi ${esc(o.name)},</p><p>Good news: your order <strong>${esc(o.id)}</strong> is on its way.</p>${track}<p>You can also follow it any time on our ${trackPage} with your order number and email.</p>`
+  } else {
+    subject = `Your ThreadCraft order ${o.id} is complete`
+    body = `<p>Hi ${esc(o.name)},</p><p>Your order <strong>${esc(o.id)}</strong> is now marked as complete. Thank you for shopping with ThreadCraft!</p><p>If anything is not right, just reply to this email and we will help.</p>`
+  }
+  await send(env, { to: o.email, subject, html: `${body}<p>ThreadCraft</p>`, replyTo: env.OWNER_EMAIL })
+}
+
 export async function notifyMessage(env, { kind, name, email, fields }) {
   const rows = Object.entries(fields).map(([k, v]) => `<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')
   await send(env, {

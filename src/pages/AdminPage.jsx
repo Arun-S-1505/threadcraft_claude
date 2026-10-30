@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import TShirt3D from '../components/TShirt3D'
 import { api, apiUrl } from '../lib/api'
 import { formatPrice } from '../data/products'
-import { colourName, PRINT_LABEL } from '../../shared/designSpec'
+import { colourName, PRINT_LABEL, FIT_LABEL, SIZES, coloursForFit, sizesFor } from '../../shared/designSpec'
 
 /**
  * Owner-only area. The real protection is Cloudflare Access in front of this page plus the
@@ -29,7 +29,7 @@ function useNoIndex() {
 
 export default function AdminPage() {
   useNoIndex()
-  const [tab, setTab] = useState('orders') // orders | messages
+  const [tab, setTab] = useState('orders') // orders | stock | messages
   const [openId, setOpenId] = useState(null)
   const [denied, setDenied] = useState(false)
 
@@ -49,6 +49,7 @@ export default function AdminPage() {
         <strong>ThreadCraft admin</strong>
         <nav>
           <button className={tab === 'orders' ? 'is-on' : ''} onClick={() => { setTab('orders'); setOpenId(null) }}>Orders</button>
+          <button className={tab === 'stock' ? 'is-on' : ''} onClick={() => setTab('stock')}>Stock</button>
           <button className={tab === 'messages' ? 'is-on' : ''} onClick={() => setTab('messages')}>Messages</button>
         </nav>
         <Link to="/" className="tc-link">View store</Link>
@@ -56,6 +57,8 @@ export default function AdminPage() {
       <main className="ad__main">
         {tab === 'messages' ? (
           <Messages onDenied={() => setDenied(true)} />
+        ) : tab === 'stock' ? (
+          <Stock onDenied={() => setDenied(true)} />
         ) : openId ? (
           <OrderDetail id={openId} onBack={() => setOpenId(null)} onDenied={() => setDenied(true)} />
         ) : (
@@ -77,7 +80,7 @@ function OrderList({ onOpen, onDenied }) {
 
   // One-click completion from the list (the order detail has the full status form)
   const complete = async (o) => {
-    if (!window.confirm(`Mark order ${o.id} as completed?${o.payment_method === 'cod' ? ' The cash on delivery payment will be recorded as received.' : ''}`)) return
+    if (!window.confirm(`Mark order ${o.id} as completed? The customer will be emailed.${o.payment_method === 'cod' ? ' The cash on delivery payment will be recorded as received.' : ''}`)) return
     setBusyId(o.id)
     try {
       await api(`/api/admin/orders/${o.id}`, { method: 'PATCH', json: { status: 'delivered' } })
@@ -205,8 +208,8 @@ function OrderDetail({ id, onBack, onDenied }) {
     setSaving(true)
     setSaveMsg('')
     try {
-      await api(`/api/admin/orders/${id}`, { method: 'PATCH', json: { status, trackingNo: tracking } })
-      setSaveMsg('Saved')
+      const r = await api(`/api/admin/orders/${id}`, { method: 'PATCH', json: { status, trackingNo: tracking } })
+      setSaveMsg(r.emailed ? 'Saved. The customer was emailed.' : 'Saved')
       load()
     } catch (e) {
       setSaveMsg(e.message)
@@ -333,6 +336,101 @@ function OrderDetail({ id, onBack, onDenied }) {
           </ul>
         </section>
       )}
+    </>
+  )
+}
+
+/* ───────── Stock ───────── */
+const FIT_ORDER = ['oversized', 'regular']
+const cellKey = (fit, colour, size) => `${fit}|${colour.toUpperCase()}|${size}`
+
+function Stock({ onDenied }) {
+  const [saved, setSaved] = useState(null) // key -> qty (number) | null
+  const [edits, setEdits] = useState({}) // key -> string typed in the box
+  const [error, setError] = useState('')
+  const [msg, setMsg] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(() => {
+    api('/api/admin/stock')
+      .then((d) => setSaved(Object.fromEntries(d.items.map((i) => [cellKey(i.fit, i.colour, i.size), i.qty]))))
+      .catch((e) => (e.status === 403 ? onDenied() : setError(e.message)))
+  }, [onDenied])
+  useEffect(load, [load])
+
+  const valueOf = (k) => (k in edits ? edits[k] : saved[k] ?? '')
+  const changed = Object.entries(edits).filter(([k, v]) => v !== String(saved?.[k] ?? ''))
+
+  const save = async () => {
+    setSaving(true)
+    setMsg('')
+    try {
+      const items = changed.map(([k, v]) => {
+        const [fit, colour, size] = k.split('|')
+        return { fit, colour, size, qty: v === '' ? null : Number(v) }
+      })
+      await api('/api/admin/stock', { method: 'PUT', json: { items } })
+      setEdits({})
+      setMsg(`Saved ${items.length} change${items.length === 1 ? '' : 's'}.`)
+      load()
+    } catch (e) {
+      setMsg(e.message)
+    }
+    setSaving(false)
+  }
+
+  if (error) return <p className="tc-error">{error}</p>
+  if (!saved) return <p className="ad__note">Loading…</p>
+  const total = Object.values(saved).reduce((n, q) => n + (q || 0), 0)
+
+  return (
+    <>
+      <p className="ad__note">
+        Count your <strong>blank tees</strong> here (the same blanks are used for every design and for custom orders). Orders subtract automatically, and cancelling an order puts the tees back.
+        Leave a box <strong>empty</strong> to not track that size: it can always be ordered. A box with <strong>0</strong> shows as sold out in the shop and studio.
+      </p>
+      <div className="ad__tools">
+        <strong>{total} tees in stock</strong>
+        <span className="ad__spacer" />
+        {msg && <span className="ad__note" role="status">{msg}</span>}
+        <button className="tc-btn tc-btn--primary tc-btn--sm" onClick={save} disabled={saving || changed.length === 0}>
+          {saving ? 'Saving…' : changed.length ? `Save ${changed.length} change${changed.length === 1 ? '' : 's'}` : 'No changes'}
+        </button>
+      </div>
+      <div className="ad__table ad__stock" role="table">
+        <div className="ad__stockrow ad__row--head" role="row">
+          <span>Fit and colour</span>
+          {SIZES.map((s) => <span key={s}>{s}</span>)}
+        </div>
+        {FIT_ORDER.flatMap((fit) =>
+          coloursForFit(fit).map((c) => (
+            <div className="ad__stockrow" role="row" key={fit + c.hex}>
+              <span className="ad__stockname">
+                <i style={{ background: c.hex }} aria-hidden="true" />
+                {FIT_LABEL[fit]} · {c.name}
+              </span>
+              {SIZES.map((s) => {
+                if (!sizesFor(fit, c.hex).includes(s)) return <span key={s} className="ad__muted">not made</span>
+                const k = cellKey(fit, c.hex, s)
+                const v = valueOf(k)
+                const level = v === '' ? '' : Number(v) === 0 ? 'is-out' : Number(v) <= 5 ? 'is-low' : ''
+                return (
+                  <input
+                    key={s}
+                    className={`tc-input ad__stockcell ${level}`}
+                    inputMode="numeric"
+                    placeholder="–"
+                    aria-label={`${FIT_LABEL[fit]} ${c.name} size ${s}`}
+                    value={v}
+                    onChange={(e) => setEdits((cur) => ({ ...cur, [k]: e.target.value.replace(/[^0-9]/g, '').slice(0, 5) }))}
+                  />
+                )
+              })}
+            </div>
+          )),
+        )}
+      </div>
+      <p className="ad__muted">Red = sold out, amber = 5 or fewer. Customers see "Only N left" when 3 or fewer remain. If you re-open a cancelled order its tees are taken from stock again.</p>
     </>
   )
 }

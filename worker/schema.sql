@@ -112,3 +112,13 @@ CREATE TABLE IF NOT EXISTS login_codes (
   window_start TEXT NOT NULL,
   created_at   TEXT NOT NULL
 );
+
+-- Blank-tee stock per fit + colour + size. No row = not tracked (always orderable); qty 0 = sold out.
+CREATE TABLE IF NOT EXISTS stock (
+  fit        TEXT NOT NULL,
+  colour     TEXT NOT NULL,            -- upper-case hex, e.g. #1A1A1A
+  size       TEXT NOT NULL,
+  qty        INTEGER NOT NULL CHECK (qty >= 0),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (fit, colour, size)
+);

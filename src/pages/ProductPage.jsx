@@ -7,6 +7,7 @@ import { SIZES, formatPrice, getProduct, relatedProducts, codAllowed, photoUrl, 
 import { COLOURS, FIT_LABEL, SHOP_FITS, SHOP_PRICES, sizesFor } from '../../shared/designSpec'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
+import { useStock } from '../lib/stock'
 import { NotFoundPage } from './InfoPages'
 
 export default function ProductPage() {
@@ -14,6 +15,7 @@ export default function ProductPage() {
   const navigate = useNavigate()
   const product = getProduct(slug)
   const { addToCart, toggleWishlist, isWished } = useStore()
+  const stock = useStock()
 
   const [fit, setFit] = useState('oversized') // oversized is the default
   const [size, setSize] = useState(null)
@@ -37,7 +39,8 @@ export default function ProductPage() {
   const chosen = COLOURS.black
   const current = product.views.includes(view) ? view : product.views[0] // photo being shown
   const inStock = sizesFor(fit, chosen.hex)
-  const sizeSel = inStock.includes(size) ? size : null // a size picked earlier may not exist in the new fit/colour
+  const sizeSel = inStock.includes(size) && stock.left(fit, chosen.hex, size) !== 0 ? size : null // a size picked earlier may not exist (or may be sold out) in the new fit/colour
+  const leftOfSel = sizeSel ? stock.left(fit, chosen.hex, sizeSel) : null
   const price = SHOP_PRICES[fit]
   const wished = isWished(product.id)
   const related = relatedProducts(product, 4)
@@ -152,8 +155,8 @@ export default function ProductPage() {
                     key={s}
                     className={`tc-size ${sizeSel === s ? 'is-on' : ''}`}
                     aria-pressed={sizeSel === s}
-                    disabled={!inStock.includes(s)}
-                    title={inStock.includes(s) ? undefined : `Not available in ${chosen.name} (${FIT_LABEL[fit].toLowerCase()})`}
+                    disabled={!inStock.includes(s) || stock.left(fit, chosen.hex, s) === 0}
+                    title={!inStock.includes(s) ? `Not available in ${FIT_LABEL[fit].toLowerCase()}` : stock.left(fit, chosen.hex, s) === 0 ? 'Sold out' : undefined}
                     onClick={() => {
                       setSize(s)
                       setError(false)
@@ -163,6 +166,7 @@ export default function ProductPage() {
                  </button>
                 ))}
               </div>
+              {leftOfSel > 0 && <p className="tc-hint">Only {leftOfSel} left in this size.</p>}
               {error && (
                 <p className="tc-error" role="alert">
                   Please choose a size to continue.

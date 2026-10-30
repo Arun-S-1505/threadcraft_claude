@@ -448,6 +448,67 @@ if (!REMOTE) {
   check('sizes: XXL is refused in the shop', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [shopLine] })).status === 400)
     }
 
+// Stock counts and the shipped / completed emails
+if (!REMOTE) {
+  const realFetch = globalThis.fetch
+  const mails = []
+  globalThis.fetch = async (url, init) => {
+    if (String(url).startsWith('https://api.resend.com/')) {
+      mails.push(JSON.parse(init.body))
+      return new Response('{}', { status: 200 })
+    }
+    return realFetch(url, init)
+  }
+  const { api: st } = makeApi({ DEV_ADMIN_EMAIL: 'threadcraftcustomwear@gmail.com', RESEND_API_KEY: 're_test', FROM_EMAIL: 'ThreadCraft <orders@example.com>' })
+  const adm = (p, init) => st('/api/admin' + p, init)
+  const put = (items) => adm('/stock', { method: 'PUT', body: JSON.stringify({ items }), headers: json })
+  const shopOrder = (item) => jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [item] }, st)
+  const qtyOf = async (fit, colour, size) => (await (await adm('/stock')).json()).items.find((i) => i.fit === fit && i.colour === colour && i.size === size).qty
+  const item = { productId: 101, fit: 'oversized', size: 'M', color: '#1A1A1A', qty: 2 }
+
+  const list0 = await (await adm('/stock')).json()
+  check('stock: 27 fit/colour/size combinations, none tracked yet', list0.items.length === 27 && list0.items.every((i) => i.qty === null), String(list0.items.length))
+  check('stock: unknown combination refused (white oversized has no S)', (await put([{ fit: 'oversized', colour: '#FFFFFF', size: 'S', qty: 1 }])).status === 400)
+  check('stock: negative count refused', (await put([{ fit: 'oversized', colour: '#1A1A1A', size: 'M', qty: -1 }])).status === 400)
+  check('stock: counts saved', (await put([{ fit: 'oversized', colour: '#1A1A1A', size: 'M', qty: 3 }, { fit: 'oversized', colour: '#1A1A1A', size: 'S', qty: 0 }])).status === 200)
+  check('stock: an order within stock is accepted', (await shopOrder(item)).status === 201)
+  check('stock: the count went down (3 -> 1)', (await qtyOf('oversized', '#1A1A1A', 'M')) === 1)
+  const tooMany = await shopOrder(item)
+  const tm = await tooMany.json()
+  check('stock: ordering more than is left -> 409 with a clear message', tooMany.status === 409 && /only 1 left/.test(tm.error), JSON.stringify(tm))
+  check('stock: a sold-out size -> 409', (await shopOrder({ ...item, size: 'S', qty: 1 })).status === 409)
+  check('stock: untracked sizes can still be ordered', (await shopOrder({ productId: 101, fit: 'regular', size: 'M', color: '#6E0F1E', qty: 1 })).status === 201)
+  const pub = await (await st('/api/stock')).json()
+  check('stock: public list shows only sold-out or nearly sold-out sizes', pub.low.length === 2 && pub.low.some((r) => r.size === 'S' && r.qty === 0) && pub.low.some((r) => r.size === 'M' && r.qty === 1), JSON.stringify(pub))
+  const last = await (await shopOrder({ ...item, qty: 1 })).json()
+  check('stock: the last tee is taken', (await qtyOf('oversized', '#1A1A1A', 'M')) === 0)
+  check('stock: cancelling an order puts the tee back', (await adm('/orders/' + last.orderId, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled' }), headers: json })).status === 200 && (await qtyOf('oversized', '#1A1A1A', 'M')) === 1)
+  await adm('/orders/' + last.orderId, { method: 'PATCH', body: JSON.stringify({ status: 'cancelled' }), headers: json })
+  check('stock: cancelling twice does not add it twice', (await qtyOf('oversized', '#1A1A1A', 'M')) === 1)
+
+  // custom studio orders use the same blanks (the test design is a white oversized tee, size M, quantity 2)
+  await put([{ fit: 'oversized', colour: '#FFFFFF', size: 'M', qty: 1 }])
+  check('stock: a custom order for more than is left -> 409', (await st('/api/orders', { method: 'POST', body: orderForm() })).status === 409)
+  await put([{ fit: 'oversized', colour: '#FFFFFF', size: 'M', qty: 5 }])
+  const custom = await (await st('/api/orders', { method: 'POST', body: orderForm() })).json()
+  check('stock: a custom order takes its tees (5 -> 3)', !!custom.orderId && (await qtyOf('oversized', '#FFFFFF', 'M')) === 3, JSON.stringify(custom))
+
+  // shipped / completed emails
+  mails.length = 0
+  const patch = (status, trackingNo) => adm('/orders/' + custom.orderId, { method: 'PATCH', body: JSON.stringify({ status, trackingNo }), headers: json })
+  await patch('shipped', 'https://track.example.com/abc123')
+  check('email: shipping sends the customer a message with the tracking link', mails.length === 1 && mails[0].to === 'test@example.com' && /has shipped/.test(mails[0].subject) && mails[0].html.includes('href="https://track.example.com/abc123"'), JSON.stringify(mails))
+  await patch('shipped', 'https://track.example.com/abc123')
+  check('email: saving the same tracking again sends nothing', mails.length === 1)
+  await patch('shipped', 'DTDC999')
+  check('email: a changed tracking number sends an update', mails.length === 2 && mails[1].html.includes('DTDC999'))
+  await patch('delivered')
+  check('email: completing sends the completed email', mails.length === 3 && /is complete/.test(mails[2].subject))
+  await patch('delivered')
+  check('email: completing twice sends nothing more', mails.length === 3)
+  globalThis.fetch = realFetch
+}
+
 // Admin must reject everyone when no valid Access login exists (production-like env)
 if (!REMOTE) {
   const { api: locked } = makeApi({ ACCESS_TEAM_DOMAIN: 'example.cloudflareaccess.com', ACCESS_AUD: 'abc' })
