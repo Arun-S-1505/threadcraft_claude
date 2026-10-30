@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { FIT_LABEL } from '../../shared/designSpec'
 import { Link } from 'react-router-dom'
 import Icon from './ui/Icon'
 import { ProductThumb } from './ui/ProductImage'
@@ -84,10 +85,10 @@ export default function CartDrawer() {
                       <div>
                         <p className="tc-line__name">{l.product.name}</p>
                         <p className="tc-line__var">
-                          {l.colorName} · Size {l.size}
+                          {FIT_LABEL[l.fit]} · {l.colorName} · Size {l.size}
                         </p>
                       </div>
-                      <p className="tc-line__price">{formatPrice(l.product.price * l.qty)}</p>
+                      <p className="tc-line__price">{formatPrice(l.price * l.qty)}</p>
                     </div>
                     <div className="tc-line__bottom">
                       <div className="tc-qty" role="group" aria-label="Quantity">

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { FIT_LABEL } from '../../shared/designSpec'
 import Icon from '../components/ui/Icon'
 import { ProductThumb } from '../components/ui/ProductImage'
 import ProductCard from '../components/ProductCard'
@@ -74,11 +75,11 @@ export default function CartPage() {
                             {l.product.name}
                           </Link>
                           <p className="tc-line__var">
-                            {l.colorName} · Size {l.size}
+                            {FIT_LABEL[l.fit]} · {l.colorName} · Size {l.size}
                           </p>
-                          <p className="tc-line__var">{formatPrice(l.product.price)} each</p>
+                          <p className="tc-line__var">{formatPrice(l.price)} each</p>
                         </div>
-                        <p className="tc-line__price">{formatPrice(l.product.price * l.qty)}</p>
+                        <p className="tc-line__price">{formatPrice(l.price * l.qty)}</p>
                       </div>
                       <div className="tc-line__bottom">
                         <div className="tc-qty" role="group" aria-label={`Quantity for ${l.product.name}`}>

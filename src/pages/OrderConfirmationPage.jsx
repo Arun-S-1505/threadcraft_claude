@@ -74,7 +74,7 @@ export default function OrderConfirmationPage() {
                   <div>
                     <strong>{it.name}</strong>
                     <small>
-                      {it.color} · {it.size} · Qty {it.qty}
+                      {[it.fit, it.color, it.size].filter(Boolean).join(' · ')} · Qty {it.qty}
                     </small>
                   </div>
                   <em>{formatPrice(it.price * it.qty)}</em>

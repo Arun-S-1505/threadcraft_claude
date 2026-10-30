@@ -1,8 +1,8 @@
 // Shop pricing is computed here from the same catalog the storefront displays.
 // Nothing the browser sends (prices, totals) is trusted; only product ids, sizes, colours and quantities.
-import { getProductById, sizesForProduct, codAllowed } from '../../src/data/products.js'
+import { getProductById, codAllowed } from '../../src/data/products.js'
 import { SITE } from '../../src/config/site.js'
-import { SIZES } from '../../shared/designSpec.js'
+import { SIZES, SHOP_FITS, SHOP_PRICES, FIT_LABEL, coloursForFit, sizesFor } from '../../shared/designSpec.js'
 
 export const MAX_LINE_QTY = 10
 export const MAX_LINES = 20
@@ -19,11 +19,12 @@ export function priceCart(rawItems, { cod = false } = {}) {
     if (!product) return { error: 'An item in your bag is no longer available' }
     if (!SIZES.includes(raw.size)) return { error: `Choose a size for ${product.name}` }
     if (!Number.isInteger(qty) || qty < 1 || qty > MAX_LINE_QTY) return { error: 'Invalid quantity' }
-    const colour = product.colors.find((c) => c.hex === raw.color)
-    if (!colour) return { error: `Invalid colour for ${product.name}` }
-    if (!sizesForProduct(product, colour.hex).includes(raw.size)) return { error: `${product.name} in ${colour.name} is not available in size ${raw.size}` }
+    if (!SHOP_FITS.includes(raw.fit)) return { error: `Choose a fit for ${product.name}` }
+    const colour = coloursForFit(raw.fit).find((c) => c.hex === raw.color)
+    if (!colour) return { error: `${product.name} is not available in that colour in the ${FIT_LABEL[raw.fit].toLowerCase()}` }
+    if (!sizesFor(raw.fit, colour.hex).includes(raw.size)) return { error: `${product.name} in ${colour.name} (${FIT_LABEL[raw.fit].toLowerCase()}) is not available in size ${raw.size}` }
     if (cod && !codAllowed(product)) return { error: `Cash on delivery is only available for t-shirts. Please pay online for ${product.name}.` }
-    items.push({ productId: product.id, slug: product.slug, name: product.name, size: raw.size, colour: colour.name, colourHex: colour.hex, qty, price: product.price })
+    items.push({ productId: product.id, slug: product.slug, name: product.name, size: raw.size, fit: raw.fit, fitLabel: FIT_LABEL[raw.fit], colour: colour.name, colourHex: colour.hex, qty, price: SHOP_PRICES[raw.fit] })
   }
 
   const subtotal = items.reduce((n, i) => n + i.price * i.qty, 0)

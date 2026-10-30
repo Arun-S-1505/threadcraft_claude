@@ -208,7 +208,7 @@ app.post('/api/shop-orders', rateLimit, async (c) => {
       total: priced.total,
       customer,
       paymentNote: method === 'cod' ? 'Payment: cash on delivery.' : 'Payment: online.',
-      lines: priced.items.map((i) => `${i.name} (${i.colour}, ${i.size}) × ${i.qty}`),
+      lines: priced.items.map((i) => `${i.name} (${i.fitLabel}, ${i.colour}, ${i.size}) × ${i.qty}`),
     })
   )
   return c.json({ orderId: id, total: priced.total, subtotal: priced.subtotal, shipping: priced.shipping, method, payment: method === 'online' ? await startPayment(c, id) : null }, 201)

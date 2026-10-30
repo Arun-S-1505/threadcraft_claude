@@ -303,7 +303,7 @@ function OrderDetail({ id, onBack, onDenied }) {
           <h2>Items</h2>
           <ul className="ad__items">
             {spec.items.map((it, i) => (
-              <li key={i}>{it.name} · {it.colour} · {it.size} · qty {it.qty} · {formatPrice(it.price * it.qty)}</li>
+              <li key={i}>{it.name} · {it.fitLabel || ''} · {it.colour} · {it.size} · qty {it.qty} · {formatPrice(it.price * it.qty)}</li>
             ))}
           </ul>
         </section>

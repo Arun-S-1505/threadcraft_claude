@@ -329,3 +329,9 @@
 .tc-col__art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; transition: transform 0.6s ease; }
 .tc-col__art:hover img { transform: scale(1.03); }
 @media (prefers-reduced-motion: reduce) { .tc-col__art:hover img { transform: none; } }
+
+/* Fit selector on the product page */
+.tc-seg.tc-seg--fit { margin-top: 0; }
+.tc-seg--fit button { display: grid; gap: 2px; justify-items: center; padding: 12px 10px; }
+.tc-seg--fit button small { font-size: 12px; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.tc-field .tc-hint { margin-top: 10px; }

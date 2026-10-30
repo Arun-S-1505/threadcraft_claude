@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import Reveal from '../components/ui/Reveal'
 import ProductCard from '../components/ProductCard'
-import { ALL_COLORS, CATEGORY_FILTERS, COLLECTIONS, PRODUCTS, getCollection } from '../data/products'
+import { CATEGORY_FILTERS, COLLECTIONS, PRODUCTS, getCollection } from '../data/products'
 
 const SORTS = [
   { value: 'featured', label: 'Featured' },
@@ -18,7 +18,6 @@ export default function ShopPage() {
 
   const collection = params.get('collection') || 'all'
   const category = params.get('category') || 'All'
-  const color = params.get('color') || ''
   const sort = params.get('sort') || 'featured'
 
   const set = (key, value, empty) => {
@@ -35,16 +34,15 @@ export default function ShopPage() {
     let list = PRODUCTS.filter(
       (p) =>
         (collection === 'all' || p.collection === collection) &&
-        (category === 'All' || p.category === category) &&
-        (!color || p.colors.some((c) => c.hex === color)),
+        (category === 'All' || p.category === category),
     )
     if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price)
     if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price)
     if (sort === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name))
     return list
-  }, [collection, category, color, sort])
+  }, [collection, category, sort])
 
-  const filtered = collection !== 'all' || category !== 'All' || color
+  const filtered = collection !== 'all' || category !== 'All'
 
   return (
     <div className="tc-page">
@@ -108,24 +106,6 @@ export default function ShopPage() {
                 ))}
               </ul>
             </div>
-            {ALL_COLORS.length > 1 && (
-            <div className="tc-filters__group">
-              <h2>Colour</h2>
-              <div className="tc-swatches tc-swatches--wrap">
-                {ALL_COLORS.map((c) => (
-                  <button
-                    key={c.hex}
-                    className={`tc-swatch tc-swatch--lg ${color === c.hex ? 'is-active' : ''}`}
-                    style={{ '--sw': c.hex }}
-                    title={c.name}
-                    aria-label={c.name}
-                    aria-pressed={color === c.hex}
-                    onClick={() => set('color', color === c.hex ? '' : c.hex, '')}
-                  />
-                ))}
-              </div>
-            </div>
-            )}
             {filtered && (
               <button className="tc-link" onClick={clearAll}>
                 Clear all filters

@@ -112,10 +112,10 @@ const jpost = (path, body, fn = api) => fn(path, { method: 'POST', body: JSON.st
 
 // Shop (cart) orders: prices come from the catalog, never from the browser
 const shopCustomer = { name: 'Test Buyer', email: 'shop@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }
-const line = { productId: 101, size: 'M', color: '#1A1A1A', qty: 2 }
+const line = { productId: 101, fit: 'oversized', size: 'M', color: '#1A1A1A', qty: 2 }
 const shop = await (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, price: 1 }], total: 1 })).json()
 check('shop COD order placed', !!shop.orderId && shop.method === 'cod', JSON.stringify(shop))
-check('shop price from catalog (1049 x 2 = 2098, free shipping)', shop.subtotal === 2098 && shop.total === 2098, JSON.stringify(shop))
+check('shop price from catalog (oversized 600 x 2 = 1200, free shipping)', shop.subtotal === 1200 && shop.total === 1200, JSON.stringify(shop))
 check('shop online rejected when gateway off', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'upi', items: [line] })).status === 400)
 check('shop bad colour -> 400', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, color: '#000000' }] })).status === 400)
 check('shop bad product -> 400', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, productId: 9999 }] })).status === 400)
@@ -123,8 +123,16 @@ check('shop qty over limit -> 400', (await jpost('/api/shop-orders', { customer:
 check('shop empty bag -> 400', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [] })).status === 400)
 check('shop: a product we no longer sell (old hoodie id) is refused', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, productId: 99 }] })).status === 400)
 check('shop: old hoodie id mixed into a bag is refused', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [line, { ...line, productId: 99 }] })).status === 400)
-check('shop: white is not offered on the photographed designs', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 102, size: 'M', color: '#FFFFFF', qty: 1 }] })).status === 400)
-check('shop black oversized in S accepted', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 102, size: 'S', color: '#1A1A1A', qty: 1 }] })).status === 201)
+const shopPost = (item) => jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [item] })
+check('shop: white oversized in S refused (no S in white oversized)', (await shopPost({ productId: 102, fit: 'oversized', size: 'S', color: '#FFFFFF', qty: 1 })).status === 400)
+check('shop: white oversized in M accepted', (await shopPost({ productId: 102, fit: 'oversized', size: 'M', color: '#FFFFFF', qty: 1 })).status === 201)
+check('shop: white regular in S accepted', (await shopPost({ productId: 102, fit: 'regular', size: 'S', color: '#FFFFFF', qty: 1 })).status === 201)
+const reg = await (await shopPost({ productId: 102, fit: 'regular', size: 'M', color: '#6E0F1E', qty: 1 })).json()
+check('shop: regular fit costs 450 (+79 shipping below the free threshold) and maroon is allowed', reg.subtotal === 450 && reg.shipping === 79 && reg.total === 529, JSON.stringify(reg))
+check('shop: maroon oversized refused', (await shopPost({ productId: 102, fit: 'oversized', size: 'M', color: '#6E0F1E', qty: 1 })).status === 400)
+check('shop: missing fit refused', (await shopPost({ productId: 102, size: 'M', color: '#1A1A1A', qty: 1 })).status === 400)
+check('shop: a price sent by the browser is ignored', (await (await shopPost({ productId: 102, fit: 'regular', size: 'M', color: '#1A1A1A', qty: 1, price: 1 })).json()).subtotal === 450)
+check('shop black oversized in S accepted', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 102, fit: 'oversized', size: 'S', color: '#1A1A1A', qty: 1 }] })).status === 201)
 check('studio white oversized in S refused', (await post(orderForm({ size: 'S' }))).status === 400)
 // every design is above the free-shipping threshold, so lower the threshold to exercise the shipping fee
 const policy = (await import('../../src/config/site.js')).SITE.policy
@@ -222,9 +230,9 @@ if (!REMOTE) {
   check('profile: needs sign-in', (await patchMe({ name: 'Asha K' })).status === 401)
 
   // orders placed as a guest with the same email appear under the account
-  const guestShop = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'test@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 101, size: 'M', color: '#1A1A1A', qty: 2 }] })).json()
+  const guestShop = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'test@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 101, fit: 'oversized', size: 'M', color: '#1A1A1A', qty: 2 }] })).json()
   // a signed-in customer's order always carries the account email, whatever the browser sends
-  const spoof = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'someone-else@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 101, size: 'M', color: '#1A1A1A', qty: 1 }] }, sess)).json()
+  const spoof = await (await jsonPost('/api/shop-orders', { payment: 'cod', customer: { name: 'Asha K', email: 'someone-else@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 101, fit: 'oversized', size: 'M', color: '#1A1A1A', qty: 1 }] }, sess)).json()
   const guestCustom = await (await acc.api('/api/orders', { method: 'POST', body: orderForm() })).json()
   const list = await (await call('/api/me/orders', {}, sess)).json()
   check('orders: lists guest orders for the verified email, and a signed-in order with a spoofed email lands on the account email', list.orders?.length === 3 && list.orders.some((o) => o.id === spoof.orderId) && list.orders.some((o) => o.id === guestShop.orderId && o.summary.includes('Ronin Eclipse Tee × 2')), JSON.stringify(list).slice(0, 300))
@@ -355,7 +363,7 @@ if (!REMOTE) {
   check('google: cross-site request is refused', (await call('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential: await makeToken(good) }), headers: { 'Content-Type': 'application/json', Origin: 'https://evil.example' } })).status === 403)
 
   // Google sign-in links to the account that already holds the same email (and its guest orders)
-  const guest = await (await jpost('/api/shop-orders', { payment: 'cod', customer: { name: 'Gina', email: 'gina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 101, size: 'M', color: '#1A1A1A', qty: 1 }] })).json()
+  const guest = await (await jpost('/api/shop-orders', { payment: 'cod', customer: { name: 'Gina', email: 'gina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 101, fit: 'oversized', size: 'M', color: '#1A1A1A', qty: 1 }] })).json()
   const gOrders = await (await call('/api/me/orders', {}, gCookie)).json()
   check('google: guest orders for that email appear', gOrders.orders?.some((o) => o.id === guest.orderId))
   globalThis.fetch = realFetch
@@ -405,7 +413,7 @@ if (!REMOTE) {
   check('google token: a too-short token is refused without asking Google', (await gpost({ accessToken: 'abc' })).status === 401)
   check('google token: cross-site request is refused', (await gpost({ accessToken: 'good-access-token-aaaaaaaaaaaa' }, { Origin: 'https://evil.example' })).status === 403)
   // signing in with Google links to the account that already holds that email, including its guest orders
-  const guest = await (await call('/api/shop-orders', { method: 'POST', body: JSON.stringify({ payment: 'cod', customer: { name: 'Tina', email: 'tina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 101, size: 'M', color: '#1A1A1A', qty: 1 }] }), headers: { 'Content-Type': 'application/json' } })).json()
+  const guest = await (await call('/api/shop-orders', { method: 'POST', body: JSON.stringify({ payment: 'cod', customer: { name: 'Tina', email: 'tina@example.com', phone: '9876543210', address: '12 Test Street, Test Area', city: 'Chennai', pincode: '600001' }, items: [{ productId: 101, fit: 'oversized', size: 'M', color: '#1A1A1A', qty: 1 }] }), headers: { 'Content-Type': 'application/json' } })).json()
   const orders = await (await call('/api/me/orders', {}, cookie)).json()
   check('google token: guest orders for that email appear', orders.orders?.some((o) => o.id === guest.orderId))
   globalThis.fetch = realFetch
@@ -421,10 +429,9 @@ if (!REMOTE) {
   check('colours: a colour we do not stock is refused', (await place('regular', '#CDB99A')) === 400)
   check('sizes: XXL is refused for custom orders', (await post(orderForm({ size: 'XXL' }))).status === 400)
   check('sizes: XL is accepted for custom orders', (await post(orderForm({ size: 'XL' }))).status === 201)
-  const shopLine = { productId: 101, size: 'XXL', color: '#1A1A1A', qty: 1 }
+  const shopLine = { productId: 101, fit: 'oversized', size: 'XXL', color: '#1A1A1A', qty: 1 }
   check('sizes: XXL is refused in the shop', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [shopLine] })).status === 400)
-  check('colours: maroon is refused in the shop (designs are photographed in black only)', (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ productId: 102, size: 'M', color: '#6E0F1E', qty: 1 }] })).status === 400)
-  }
+    }
 
 // Admin must reject everyone when no valid Access login exists (production-like env)
 if (!REMOTE) {

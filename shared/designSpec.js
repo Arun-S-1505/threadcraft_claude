@@ -14,6 +14,11 @@ export const sizesFor = (fit, hex) => {
   return SIZES.filter((s) => !out.includes(s))
 }
 export const PRINT_TYPES = ['dtf']
+
+// Shop (collection) tee prices in INR, by fit. The Worker prices carts from these, never from the browser.
+export const SHOP_FITS = ['oversized', 'regular']
+export const SHOP_PRICES = { oversized: 600, regular: 450 }
+export const FIT_LABEL = { oversized: 'Oversized fit', regular: 'Regular fit' }
 // The colours we actually stock (hex approximates the real fabric; see the product photos).
 export const COLOURS = {
   white: { name: 'White', hex: '#FFFFFF' },

@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { SITE } from '../config/site'
-import { getProductById, SIZES } from '../data/products'
+import { getProductById } from '../data/products'
+import { SHOP_FITS, SHOP_PRICES, coloursForFit, sizesFor } from '../../shared/designSpec'
 
 /**
  * Cart + wishlist state, persisted to localStorage.
- * Cart line = { key, productId, size, color (hex), colorName, qty }
+ * Cart line = { key, productId, size, fit, color (hex), colorName, qty }
  */
 const CART_KEY = 'tc_cart_v1'
 const WISH_KEY = 'tc_wishlist_v1'
@@ -63,12 +64,13 @@ export function StoreProvider({ children }) {
   }, [])
 
   const addToCart = useCallback(
-    ({ productId, size = 'M', color, colorName, qty = 1 }, { openDrawer = true } = {}) => {
+    ({ productId, size = 'M', color, colorName, fit = 'oversized', qty = 1 }, { openDrawer = true } = {}) => {
       const product = getProductById(productId)
       if (!product) return
-      const c = color || product.colors[0].hex
-      const cn = colorName || product.colors.find((x) => x.hex === c)?.name || product.colors[0].name
-      dispatch({ type: 'add', line: { key: `${productId}|${size}|${c}`, productId, size, color: c, colorName: cn, qty } })
+      const colours = coloursForFit(fit)
+      const c = color || colours[0].hex
+      const cn = colorName || colours.find((x) => x.hex === c)?.name || colours[0].name
+      dispatch({ type: 'add', line: { key: `${productId}|${fit}|${size}|${c}`, productId, size, fit, color: c, colorName: cn, qty } })
       if (openDrawer) setDrawerOpen(true)
     },
     [],
@@ -87,10 +89,12 @@ export function StoreProvider({ children }) {
 
   const value = useMemo(() => {
     const lines = cart
-      .map((l) => ({ ...l, product: getProductById(l.productId) }))
-      .filter((l) => l.product && SIZES.includes(l.size) && l.product.colors.some((c) => c.hex === l.color))
+      // lines saved before fits existed were oversized
+      .map((l) => ({ ...l, fit: l.fit || 'oversized', product: getProductById(l.productId) }))
+      .filter((l) => l.product && SHOP_FITS.includes(l.fit) && sizesFor(l.fit, l.color).includes(l.size) && coloursForFit(l.fit).some((c) => c.hex === l.color))
+      .map((l) => ({ ...l, price: SHOP_PRICES[l.fit] }))
     const count = lines.reduce((n, l) => n + l.qty, 0)
-    const subtotal = lines.reduce((n, l) => n + l.product.price * l.qty, 0)
+    const subtotal = lines.reduce((n, l) => n + l.price * l.qty, 0)
     const { freeShippingThreshold, shippingFee, gstRate } = SITE.policy
     const shipping = subtotal === 0 || subtotal >= freeShippingThreshold ? 0 : shippingFee
     // Prices are treated as GST-inclusive (standard for Indian B2C pricing)

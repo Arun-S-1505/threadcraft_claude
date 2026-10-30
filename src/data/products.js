@@ -1,5 +1,5 @@
 import { SITE } from '../config/site.js'
-import { SIZES as SPEC_SIZES, COLOURS, sizesFor } from '../../shared/designSpec.js'
+import { SIZES as SPEC_SIZES, COLOURS, SHOP_PRICES, coloursForFit } from '../../shared/designSpec.js'
 
 /* ───────── Formatting ───────── */
 const nf = new Intl.NumberFormat(SITE.currency.locale, { maximumFractionDigits: 0 })
@@ -8,16 +8,11 @@ export const formatPrice = (n) => `${SITE.currency.symbol}${nf.format(Math.round
 /* ───────── Shared option lists ───────── */
 export const SIZES = SPEC_SIZES
 
-/** Sizes in stock for a product in a colour (white oversized has no S). */
-export const sizesForProduct = (product, hex) => sizesFor(product.type === 'oversized' ? 'oversized' : 'regular', hex)
-
-/** Cash on delivery is only for t-shirts from the collection, never for custom studio orders. */
-export const COD_TYPES = ['tee', 'oversized']
-export const codAllowed = (product) => COD_TYPES.includes(product.type)
+/** Cash on delivery is only for t-shirts from the collection, never for custom studio orders. Every collection product is a tee. */
+export const codAllowed = () => true
 
 export const TYPES = {
-  tee: { label: 'Regular Tee', group: 'T-Shirts' },
-  oversized: { label: 'Oversized Tee', group: 'T-Shirts' },
+  tee: { label: 'Round-neck Tee', group: 'T-Shirts' },
 }
 
 export const CATEGORY_FILTERS = ['All', 'T-Shirts']
@@ -69,15 +64,14 @@ export const VIEW_LABELS = {
 export const photoUrl = (slug, view, small = false) => `/products/${slug}/${view}${small ? '-sm' : ''}.webp`
 
 /* ───────── Products ───────── */
-// Every piece is photographed in black only, so black is the only colour offered for now.
+// Every design comes in oversized and regular fit and in every colour we stock, but only the black oversized tee has been photographed so far.
 const products = [
   {
     id: 101,
     slug: 'ronin-eclipse-tee',
     name: 'Ronin Eclipse Tee',
     collection: 'anime',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A masked ronin under a blood-red eclipse. Large back print with a small mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -86,8 +80,7 @@ const products = [
     slug: 'naruto-manga-tee',
     name: 'Naruto Manga Tee',
     collection: 'anime',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "Manga-style Naruto artwork across the back, with a small logo on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -96,8 +89,7 @@ const products = [
     slug: 'gear-5-tee',
     name: 'Gear 5 Tee',
     collection: 'anime',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "Luffy in Gear 5, printed large on the back, with a small One Piece logo on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -106,8 +98,7 @@ const products = [
     slug: 'tanjiro-brushstroke-tee',
     name: 'Tanjiro Brushstroke Tee',
     collection: 'anime',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "Tanjiro in fiery colour on the back, with a brushstroke Demon Slayer mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -116,8 +107,7 @@ const products = [
     slug: 'zenitsu-lightning-tee',
     name: 'Zenitsu Lightning Tee',
     collection: 'anime',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "Zenitsu in a flash of lightning on the back, with a small Demon Slayer mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -126,8 +116,7 @@ const products = [
     slug: 'less-but-better-tee',
     name: 'Less But Better Tee',
     collection: 'minimal',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A classical statue drawn with architectural lines and a red sun. Large back print, small chest mark.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -136,8 +125,7 @@ const products = [
     slug: 'mountain-sun-tee',
     name: 'Mountain Sun Tee',
     collection: 'minimal',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A single mountain line under a red sun. Quiet back print with a small mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -146,8 +134,7 @@ const products = [
     slug: 'geometric-butterfly-tee',
     name: 'Geometric Butterfly Tee',
     collection: 'minimal',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A butterfly built from sharp geometry in black, white and red, printed on the back.",
     views: ['model-back','hang-back'],
   },
@@ -156,8 +143,7 @@ const products = [
     slug: 'crane-rising-tee',
     name: 'Crane Rising Tee',
     collection: 'minimal',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A crane rising over a red sun, printed on the back, with a feather mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -166,8 +152,7 @@ const products = [
     slug: 'industrial-noir-27-tee',
     name: 'Industrial Noir 27 Tee',
     collection: 'minimal',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A bold, broken numeral 27 in monochrome, printed large on the back.",
     views: ['model-back','hang-back'],
   },
@@ -176,8 +161,7 @@ const products = [
     slug: 'race-helmet-tee',
     name: 'Race Helmet Tee',
     collection: 'automotive',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A scratched racing helmet and the word RACE in red. Large back print, small helmet on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -186,8 +170,7 @@ const products = [
     slug: 'japanese-racing-tee',
     name: 'Japanese Racing Tee',
     collection: 'automotive',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A race car on a mountain road under a red sun, with the kanji for speed. Back print with a small chest mark.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -196,8 +179,7 @@ const products = [
     slug: 'motorsport-focus-tee',
     name: 'Motorsport Focus Tee',
     collection: 'automotive',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A driver's focused eyes through a torn visor, printed on the back with a small red stripe on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -206,8 +188,7 @@ const products = [
     slug: 'porsche-gt3-rs-tee',
     name: 'Porsche GT3 RS Tee',
     collection: 'automotive',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A Porsche GT3 RS on the back under big white lettering, with the crest on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -216,8 +197,7 @@ const products = [
     slug: 'mercedes-amg-gt-tee',
     name: 'Mercedes-AMG GT Tee',
     collection: 'automotive',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A technical blueprint of the Mercedes-AMG GT on the back, with the Mercedes star on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -226,8 +206,7 @@ const products = [
     slug: 'bugatti-chiron-tee',
     name: 'Bugatti Chiron Tee',
     collection: 'automotive',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A blueprint-style Bugatti Chiron on the back, with a small mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -236,8 +215,7 @@ const products = [
     slug: 'max-verstappen-tee',
     name: 'Max Verstappen Tee',
     collection: 'automotive',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A racing-poster portrait of Max Verstappen on the back, with a small mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -246,8 +224,7 @@ const products = [
     slug: 'sergio-perez-tee',
     name: 'Sergio Pérez Tee',
     collection: 'automotive',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A Red Bull graphic of Sergio Pérez on the back, with a small mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -256,8 +233,7 @@ const products = [
     slug: 'fall-rise-repeat-tee',
     name: 'Fall Rise Repeat Tee',
     collection: 'streetwear',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A gothic angel above the words FALL RISE REPEAT, with a star emblem on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -266,8 +242,7 @@ const products = [
     slug: 'born-from-chaos-tee',
     name: 'Born From Chaos Tee',
     collection: 'streetwear',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A skull wrapped in roses and thorns on the back, with a snake and rose mark on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -276,8 +251,7 @@ const products = [
     slug: 'no-signal-tee',
     name: 'No Signal Tee',
     collection: 'streetwear',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A blue grunge collage that reads NO SIGNAL on the back, with a small After Midnight panel on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -286,8 +260,7 @@ const products = [
     slug: 'drive-discipline-tee',
     name: 'Drive Discipline Tee',
     collection: 'streetwear',
-    type: 'oversized',
-    price: 1049,
+    type: 'tee',
     blurb: "A neo-classical bust with bold red DRIVE lettering on the back, with a gothic emblem on the chest.",
     views: ['model-back','model-front','hang-back','hang-front'],
   },
@@ -295,7 +268,9 @@ const products = [
 
 export const PRODUCTS = products.map((p) => ({
   ...p,
-  colors: [C.black],
+  colors: coloursForFit('regular'), // superset; the colours per fit come from coloursForFit(fit)
+  price: SHOP_PRICES.oversized, // default fit; regular fit is cheaper (SHOP_PRICES.regular)
+  fromPrice: SHOP_PRICES.regular,
   category: TYPES[p.type].group,
   typeLabel: TYPES[p.type].label,
   collectionTitle: COLLECTIONS.find((c) => c.slug === p.collection)?.title,

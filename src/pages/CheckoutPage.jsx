@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { FIT_LABEL } from '../../shared/designSpec'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import { ProductThumb } from '../components/ui/ProductImage'
@@ -102,7 +103,7 @@ export default function CheckoutPage() {
             notes: '',
           },
           // Only ids, sizes, colours and quantities are sent. The server prices the bag itself.
-          items: lines.map((l) => ({ productId: l.productId, size: l.size, color: l.color, qty: l.qty })),
+          items: lines.map((l) => ({ productId: l.productId, size: l.size, fit: l.fit, color: l.color, qty: l.qty })),
         },
       })
 
@@ -130,7 +131,7 @@ export default function CheckoutPage() {
         address: { line1: form.address, line2: form.apartment, city: form.city, state: form.state, pin: form.pin },
         payment: method,
         payState,
-        items: lines.map((l) => ({ name: l.product.name, size: l.size, color: l.colorName, qty: l.qty, price: l.product.price })),
+        items: lines.map((l) => ({ name: l.product.name, size: l.size, fit: FIT_LABEL[l.fit], color: l.colorName, qty: l.qty, price: l.price })),
         subtotal: res.subtotal, // server-verified amounts
         shipping: res.shipping,
         total: res.total,
@@ -258,10 +259,10 @@ export default function CheckoutPage() {
                   <div>
                     <strong>{l.product.name}</strong>
                     <small>
-                      {l.colorName} · {l.size}
+                      {FIT_LABEL[l.fit]} · {l.colorName} · {l.size}
                     </small>
                   </div>
-                  <em>{formatPrice(l.product.price * l.qty)}</em>
+                  <em>{formatPrice(l.price * l.qty)}</em>
                 </li>
               ))}
             </ul>

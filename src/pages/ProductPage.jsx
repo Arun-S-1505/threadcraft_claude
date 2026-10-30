@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import Icon from '../components/ui/Icon'
 import Reveal from '../components/ui/Reveal'
 import ProductCard from '../components/ProductCard'
-import { SIZES, formatPrice, getProduct, relatedProducts, sizesForProduct, codAllowed, photoUrl, VIEW_LABELS } from '../data/products'
+import { SIZES, formatPrice, getProduct, relatedProducts, codAllowed, photoUrl, VIEW_LABELS } from '../data/products'
+import { COLOURS, FIT_LABEL, SHOP_FITS, SHOP_PRICES, coloursForFit, sizesFor } from '../../shared/designSpec'
 import { SITE } from '../config/site'
 import { useStore } from '../store/StoreContext'
 import { NotFoundPage } from './InfoPages'
@@ -14,6 +15,7 @@ export default function ProductPage() {
   const product = getProduct(slug)
   const { addToCart, toggleWishlist, isWished } = useStore()
 
+  const [fit, setFit] = useState('oversized') // oversized is the default
   const [color, setColor] = useState(null)
   const [size, setSize] = useState(null)
   const [qty, setQty] = useState(1)
@@ -22,6 +24,7 @@ export default function ProductPage() {
   const [open, setOpen] = useState('details')
 
   useEffect(() => {
+    setFit('oversized')
     setColor(null)
     setSize(null)
     setQty(1)
@@ -31,19 +34,24 @@ export default function ProductPage() {
 
   if (!product) return <NotFoundPage />
 
-  const chosen = color || product.colors[0]
+  // Colours, sizes and price all depend on the fit. Maroon is regular only; white oversized has no S.
+  const colours = coloursForFit(fit)
+  const chosen = colours.find((c) => c.hex === color?.hex) || colours.find((c) => c.hex === COLOURS.black.hex) || colours[0]
   const current = product.views.includes(view) ? view : product.views[0] // photo being shown
-  const inStock = sizesForProduct(product, chosen.hex) // e.g. white oversized has no S
+  const inStock = sizesFor(fit, chosen.hex)
+  const sizeSel = inStock.includes(size) ? size : null // a size picked earlier may not exist in the new fit/colour
+  const price = SHOP_PRICES[fit]
+  const photoIsBlack = chosen.hex === COLOURS.black.hex
   const wished = isWished(product.id)
   const related = relatedProducts(product, 4)
 
   const add = (goCheckout = false) => {
-    if (!size) {
+    if (!sizeSel) {
       setError(true)
       document.getElementById('size-group')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
-    addToCart({ productId: product.id, size, color: chosen.hex, colorName: chosen.name, qty }, { openDrawer: !goCheckout })
+    addToCart({ productId: product.id, size: sizeSel, fit, color: chosen.hex, colorName: chosen.name, qty }, { openDrawer: !goCheckout })
     if (goCheckout) navigate('/checkout')
   }
 
@@ -53,10 +61,8 @@ export default function ProductPage() {
       title: 'Details & fabric',
       body: (
         <ul className="tc-bullets">
-          {(product.type === 'tee' || product.type === 'oversized') && (
-            <li>{product.type === 'oversized' ? SITE.policy.gsmOversized : SITE.policy.gsmRegular} GSM, 100% cotton</li>
-          )}
-          <li>{product.type === 'oversized' ? 'Boxy oversized fit with dropped shoulders' : 'Regular fit, round neck with ribbed collar'}</li>
+          <li>{fit === 'oversized' ? SITE.policy.gsmOversized : SITE.policy.gsmRegular} GSM, 100% cotton</li>
+          <li>{fit === 'oversized' ? 'Boxy oversized fit with dropped shoulders' : 'Regular fit, round neck with ribbed collar'}</li>
           <li>Full-colour DTF print, made to order</li>
           <li>Printed to order in India</li>
         </ul>
@@ -108,7 +114,7 @@ export default function ProductPage() {
             </ul>
             <div className="tc-gallery__main tc-stage tc-stage--photo">
               {product.tag && <span className="tc-badge tc-card__tag">{product.tag}</span>}
-              <img className="tc-stage__img" key={current} src={photoUrl(product.slug, current)} alt={`${product.name} in ${chosen.name}, ${VIEW_LABELS[current].toLowerCase()}`} decoding="async" />
+              <img className="tc-stage__img" key={current} src={photoUrl(product.slug, current)} alt={`${product.name}, oversized tee in black, ${VIEW_LABELS[current].toLowerCase()}`} decoding="async" />
             </div>
           </div>
 
@@ -119,9 +125,25 @@ export default function ProductPage() {
             </p>
             <h1 className="tc-buy__title">{product.name}</h1>
             <p className="tc-buy__price">
-              {formatPrice(product.price)} <span>Inclusive of all taxes</span>
+              {formatPrice(price)} <span>Inclusive of all taxes</span>
             </p>
             <p className="tc-buy__blurb">{product.blurb}</p>
+
+            <div className="tc-field">
+              <div className="tc-field__label">
+                <span>Fit</span>
+                <strong>{fit === 'oversized' ? `${SITE.policy.gsmOversized} GSM` : `${SITE.policy.gsmRegular} GSM`}</strong>
+              </div>
+              <div className="tc-seg tc-seg--fit" role="group" aria-label="Fit">
+                {SHOP_FITS.map((f) => (
+                  <button key={f} type="button" className={fit === f ? 'is-on' : ''} aria-pressed={fit === f} onClick={() => setFit(f)}>
+                    {FIT_LABEL[f]}
+                    <small>{formatPrice(SHOP_PRICES[f])}</small>
+                  </button>
+                ))}
+              </div>
+              {fit === 'regular' && <p className="tc-hint">The photos show the oversized fit. The regular fit has the same print on a slimmer body.</p>}
+            </div>
 
             <div className="tc-field">
               <div className="tc-field__label">
@@ -129,7 +151,7 @@ export default function ProductPage() {
                 <strong>{chosen.name}</strong>
               </div>
               <div className="tc-swatches tc-swatches--wrap">
-                {product.colors.map((c) => (
+                {colours.map((c) => (
                   <button
                     key={c.hex}
                     className={`tc-swatch tc-swatch--xl ${chosen.hex === c.hex ? 'is-active' : ''}`}
@@ -137,13 +159,11 @@ export default function ProductPage() {
                     title={c.name}
                     aria-label={c.name}
                     aria-pressed={chosen.hex === c.hex}
-                    onClick={() => {
-                      setColor(c)
-                      if (size && !sizesForProduct(product, c.hex).includes(size)) setSize(null)
-                    }}
+                    onClick={() => setColor(c)}
                   />
                 ))}
               </div>
+              {!photoIsBlack && <p className="tc-hint">The photos show the black tee. Your {chosen.name.toLowerCase()} tee carries the same print.</p>}
             </div>
 
             <div className="tc-field" id="size-group">
@@ -154,10 +174,10 @@ export default function ProductPage() {
                 {SIZES.map((s) => (
                   <button
                     key={s}
-                    className={`tc-size ${size === s ? 'is-on' : ''}`}
-                    aria-pressed={size === s}
+                    className={`tc-size ${sizeSel === s ? 'is-on' : ''}`}
+                    aria-pressed={sizeSel === s}
                     disabled={!inStock.includes(s)}
-                    title={inStock.includes(s) ? undefined : `Not available in ${chosen.name}`}
+                    title={inStock.includes(s) ? undefined : `Not available in ${chosen.name} (${FIT_LABEL[fit].toLowerCase()})`}
                     onClick={() => {
                       setSize(s)
                       setError(false)
@@ -185,7 +205,7 @@ export default function ProductPage() {
                </button>
               </div>
               <button className="tc-btn tc-btn--primary tc-btn--lg tc-buy__add" onClick={() => add(false)}>
- Add to bag · {formatPrice(product.price * qty)}
+ Add to bag · {formatPrice(price * qty)}
              </button>
               <button
                 className={`tc-iconbtn tc-iconbtn--boxed ${wished ? 'is-on' : ''}`}
@@ -263,7 +283,7 @@ export default function ProductPage() {
       <div className="tc-stickybuy">
         <div>
           <strong>{product.name}</strong>
-          <span>{formatPrice(product.price)}</span>
+          <span>{formatPrice(price)}</span>
         </div>
         <button className="tc-btn tc-btn--primary tc-btn--sm" onClick={() => add(false)}>
           Add to bag

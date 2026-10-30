@@ -147,7 +147,7 @@ function OrderDetail({ id, email, onChanged }) {
             <ul className="tc-ord__items">
               {o.items.map((it, i) => (
                 <li key={i}>
-                  <span>{it.name}<small>{it.colour} · {it.size} · Qty {it.qty}</small></span>
+                  <span>{it.name}<small>{[it.fitLabel, it.colour, it.size].filter(Boolean).join(' · ')} · Qty {it.qty}</small></span>
                   <em>{formatPrice(it.price * it.qty)}</em>
                 </li>
               ))}
