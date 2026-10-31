@@ -43,3 +43,22 @@ export async function listGatewayPayments(env, gatewayOrderId) {
   if (!res.ok) throw new Error('Razorpay lookup failed: ' + res.status)
   return (await res.json()).items || []
 }
+
+/** Refunds part or all of a captured payment back to the customer's original payment method. amountInr is a whole number of rupees. */
+export async function refundGatewayPayment(env, paymentId, amountInr, { receipt, reason } = {}) {
+  const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/refund`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Basic ' + btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ amount: amountInr * 100, speed: 'normal', ...(receipt ? { receipt } : {}), notes: { reason: reason || 'Refund from ThreadCraft admin' } }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    console.error('Razorpay refund failed', res.status, JSON.stringify(data))
+    // Razorpay's own message is safe to show the owner (for example "The payment has been fully refunded already")
+    throw new Error(data?.error?.description || 'Razorpay could not process the refund')
+  }
+  return { id: data.id, status: data.status || 'processed' }
+}

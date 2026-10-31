@@ -49,7 +49,11 @@ export function ContactPage() {
           {channels.map((c) => (
             <li key={c.title}>
               <h3>{c.title}</h3>
-              {c.href ? <a href={c.href}>{c.text}</a> : <p>{c.text}</p>}
+              {c.icon === 'instagram' ? (
+                <a href={c.href} target="_blank" rel="noopener noreferrer" className="tc-contact__iconlink" aria-label="ThreadCraft on Instagram">
+                  <Icon name="instagram" size={22} />
+                </a>
+              ) : c.href ? <a href={c.href}>{c.text}</a> : <p>{c.text}</p>}
             </li>
           ))}
         </ul>

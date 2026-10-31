@@ -140,6 +140,26 @@ export async function notifyStatus(env, o) {
   await send(env, { to: o.email, subject, html, replyTo: env.OWNER_EMAIL })
 }
 
+/** Customer email when the owner refunds an order. o = { id, name, email, amount, full, reason } */
+export async function notifyRefund(env, o) {
+  if (!o.email || o.email.endsWith('@invalid')) return // personal data was erased
+  await send(env, {
+    to: o.email,
+    subject: `Your ThreadCraft refund of ${inr(o.amount)} for order ${o.id}`,
+    html: layout(env, {
+      heading: 'Your refund is on its way',
+      preheader: `${inr(o.amount)} is being refunded to your original payment method.`,
+      body:
+        para(`Hi ${esc(o.name)}, we have ${o.full ? 'refunded your order' : 'issued a partial refund'}.`) +
+        panel('Refund amount', inr(o.amount), `<br><span style="font:14px ${FONT};letter-spacing:0;text-transform:none;color:${MUTED}">Order ${esc(o.id)}</span>`) +
+        para('It goes back to the UPI account, card or bank account you paid from. Banks usually take 5 to 7 working days to show it.') +
+        (o.reason ? para(`<span style="color:${MUTED}">Note: ${esc(o.reason)}</span>`) : '') +
+        para('If it has not arrived after 7 working days, just reply to this email.'),
+    }),
+    replyTo: env.OWNER_EMAIL,
+  })
+}
+
 export async function notifyMessage(env, { kind, name, email, fields }) {
   const rows = Object.entries(fields).map(([k, v]) => `<li style="margin:0 0 6px"><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')
   await send(env, {

@@ -171,6 +171,9 @@ function OrderDetail({ id, onBack, onDenied }) {
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
   const [view, setView] = useState('front')
+  const [rf, setRf] = useState({ amount: '', reason: '', cancel: false })
+  const [refunding, setRefunding] = useState(false)
+  const [refundMsg, setRefundMsg] = useState({ text: '', error: false })
 
   const load = useCallback(() => {
     api(`/api/admin/orders/${id}`)
@@ -201,6 +204,26 @@ function OrderDetail({ id, onBack, onDenied }) {
       load()
     } catch (e) {
       setSaveMsg(e.message)
+    }
+  }
+
+  const refund = async () => {
+    const paid = order.total - (order.refunds || []).reduce((n, r) => n + r.amount, 0)
+    const amount = rf.amount === '' ? paid : Number(rf.amount)
+    if (!Number.isInteger(amount) || amount < 1 || amount > paid) return setRefundMsg({ text: `Enter a whole number of rupees between 1 and ${paid}.`, error: true })
+    const extra = rf.cancel ? ' The order will also be cancelled and its tees put back in stock.' : ''
+    if (!window.confirm(`Refund ${formatPrice(amount)} to ${order.customer_name} for order ${id}? The money goes back to the customer's original payment method and this cannot be undone.${extra}`)) return
+    setRefunding(true)
+    setRefundMsg({ text: '', error: false })
+    try {
+      const r = await api(`/api/admin/orders/${id}/refund`, { method: 'POST', json: { amount, reason: rf.reason, cancel: rf.cancel } })
+      setRefundMsg({ text: `Refunded ${formatPrice(r.amount)}.${r.emailed ? ' The customer was emailed.' : ''} Banks usually take 5 to 7 working days.`, error: false })
+      setRf({ amount: '', reason: '', cancel: false })
+      load()
+    } catch (e) {
+      setRefundMsg({ text: e.message, error: true })
+    } finally {
+      setRefunding(false)
     }
   }
 
@@ -251,6 +274,32 @@ function OrderDetail({ id, onBack, onDenied }) {
           <p>{order.payment_method} · <strong>{order.payment_status}</strong></p>
           <p>Total {formatPrice(order.total)}{order.shipping ? ` (incl. ${formatPrice(order.shipping)} shipping)` : ''}</p>
           {order.payment_id && <p className="ad__muted">Gateway payment: {order.payment_id}</p>}
+          {(order.refunds || []).length > 0 && (
+            <ul className="ad__history">
+              {order.refunds.map((r) => <li key={r.id}>{fmt(r.at)} · refunded {formatPrice(r.amount)}{r.reason ? ` (${r.reason})` : ''} · {r.status} · {r.actor}</li>)}
+            </ul>
+          )}
+          {order.payment_method === 'online' && order.payment_status === 'paid' && order.payment_id && (() => {
+            const left = order.total - (order.refunds || []).reduce((n, r) => n + r.amount, 0)
+            return (
+              <div className="ad__refund">
+                <h3>Refund</h3>
+                <p className="ad__muted">Up to {formatPrice(left)} can still be refunded. It goes back to the customer's original payment method.</p>
+                <label>Amount in rupees (leave empty to refund {formatPrice(left)})
+                  <input className="tc-input" type="number" min="1" max={left} inputMode="numeric" value={rf.amount} onChange={(e) => setRf({ ...rf, amount: e.target.value })} placeholder={String(left)} />
+                </label>
+                <label>Reason (optional, shown to the customer)
+                  <input className="tc-input" maxLength={200} value={rf.reason} onChange={(e) => setRf({ ...rf, reason: e.target.value })} />
+                </label>
+                {order.status !== 'cancelled' && (
+                  <label className="ad__check"><input type="checkbox" checked={rf.cancel} onChange={(e) => setRf({ ...rf, cancel: e.target.checked })} /> Also cancel this order and return its tees to stock</label>
+                )}
+                <button className="tc-btn tc-btn--primary tc-btn--sm" onClick={refund} disabled={refunding}>{refunding ? 'Refunding…' : `Refund ${formatPrice(rf.amount === '' ? left : Number(rf.amount) || 0)}`}</button>
+                {refundMsg.text && <p className={refundMsg.error ? 'tc-error' : 'ad__note'} role="status">{refundMsg.text}</p>}
+              </div>
+            )
+          })()}
+          {order.payment_status === 'refunded' && <p className="ad__note">This order has been refunded in full.</p>}
         </section>
 
         <section className="ad__card">

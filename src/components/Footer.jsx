@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SITE } from '../config/site'
 import { api } from '../lib/api'
+import Icon from './ui/Icon'
 
 const socials = [
   { key: 'instagram', icon: 'instagram', label: 'Instagram' },
@@ -44,7 +45,7 @@ export default function Footer() {
               <div className="tc-social">
                 {activeSocials.map((s) => (
                   <a key={s.key} href={SITE.social[s.key]} target="_blank" rel="noopener noreferrer" aria-label={s.label}>
-                    {s.label}
+                    <Icon name={s.icon} size={20} />
                   </a>
                 ))}
               </div>

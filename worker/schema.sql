@@ -122,3 +122,16 @@ CREATE TABLE IF NOT EXISTS stock (
   updated_at TEXT NOT NULL,
   PRIMARY KEY (fit, colour, size)
 );
+
+-- Refunds made from the admin (money goes back through Razorpay). Amounts in whole INR; several partial refunds per order are allowed.
+CREATE TABLE IF NOT EXISTS refunds (
+  id         TEXT PRIMARY KEY,         -- Razorpay refund id
+  order_id   TEXT NOT NULL,
+  payment_id TEXT,
+  amount     INTEGER NOT NULL CHECK (amount > 0),
+  reason     TEXT,
+  status     TEXT,                     -- Razorpay's status: processed | pending
+  actor      TEXT,
+  at         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_refunds_order ON refunds (order_id);

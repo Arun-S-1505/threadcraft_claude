@@ -293,6 +293,8 @@
 .tc-contact__cards h3 { font-family: var(--serif); font-size: 18px; font-weight: 400; margin: 12px 0 4px; }
 .tc-contact__cards a, .tc-contact__cards p { color: var(--muted); word-break: break-word; }
 .tc-contact__cards a:hover { color: var(--ink); }
+.tc-contact__cards a.tc-contact__iconlink { display: inline-grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 50%; color: var(--ink); transition: background .2s, color .2s; }
+.tc-contact__cards a.tc-contact__iconlink:hover { background: var(--ink); color: var(--paper); }
 .tc-contact__form .tc-btn { margin-top: 24px; }
 @media (max-width: 900px) { .tc-contact { grid-template-columns: 1fr; } }
 

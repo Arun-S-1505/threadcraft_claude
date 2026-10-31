@@ -4,9 +4,9 @@ import { SITE } from '../../src/config/site.js'
 import { computePrice, validateDesignSpec, validateCustomer, SIZES, sizesFor, PLACEMENTS, PRINT_LABEL, printSummary, stockCombos } from '../../shared/designSpec.js'
 import { readUploads, MAX_REQUEST_BYTES } from './files.js'
 import { requireAdmin } from './auth.js'
-import { notifyNewOrder, notifyMessage, notifyStatus } from './email.js'
+import { notifyNewOrder, notifyMessage, notifyStatus, notifyRefund } from './email.js'
 import { reserveStock, releaseStock, linesFromOrder, enabledGated } from './stock.js'
-import { gatewayEnabled, createGatewayOrder, listGatewayPayments } from './payments.js'
+import { gatewayEnabled, createGatewayOrder, listGatewayPayments, refundGatewayPayment } from './payments.js'
 import { orderMailPayload } from './orderMail.js'
 import { priceCart } from './catalog.js'
 import { runMonthlyBackup } from './backup.js'
@@ -369,8 +369,9 @@ admin.get('/orders/:id', async (c) => {
   if (!order) return c.json({ error: 'Not found' }, 404)
   const files = (await c.env.DB.prepare(`SELECT f.sha256, f.mime, f.size, o.kind, o.label FROM order_files o JOIN files f ON f.sha256 = o.sha256 WHERE o.order_id = ?`).bind(id).all()).results
   const history = (await c.env.DB.prepare(`SELECT status, tracking_no, actor, at FROM status_history WHERE order_id = ? ORDER BY id`).bind(id).all()).results
+  const refunds = (await c.env.DB.prepare(`SELECT id, amount, reason, status, actor, at FROM refunds WHERE order_id = ? ORDER BY at`).bind(id).all().catch(() => ({ results: [] }))).results
   const { spec_json, ...rest } = order
-  return c.json({ ...rest, spec: JSON.parse(spec_json), files, history })
+  return c.json({ ...rest, spec: JSON.parse(spec_json), files, history, refunds })
 })
 
 admin.patch('/orders/:id', async (c) => {
@@ -402,6 +403,54 @@ admin.patch('/orders/:id', async (c) => {
     c.executionCtx.waitUntil(notifyStatus(c.env, { id, name: before.customer_name, email: before.email, status: body.status, tracking: newTracking }))
   }
   return c.json({ ok: true, emailed: Boolean(shippedNow || completedNow) })
+})
+
+// Refund (all or part) of a paid online order. The money goes back through Razorpay to the customer's original payment method.
+// A full refund marks the order refunded; `cancel: true` also cancels the order and puts its tees back in stock.
+admin.post('/orders/:id/refund', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json().catch(() => ({}))
+  const order = await c.env.DB.prepare(`SELECT id, status, kind, size, quantity, spec_json, total, payment_method, payment_status, payment_id, customer_name, email FROM orders WHERE id = ?`).bind(id).first()
+  if (!order) return c.json({ error: 'Not found' }, 404)
+  if (order.payment_method !== 'online' || !order.payment_id) return c.json({ error: 'Only orders paid online can be refunded here. Cash-on-delivery or unpaid orders have nothing to refund.' }, 400)
+  if (order.payment_status === 'refunded') return c.json({ error: 'This order has already been refunded in full.' }, 400)
+  if (order.payment_status !== 'paid') return c.json({ error: 'This order has not been paid, so there is nothing to refund.' }, 400)
+  if (!gatewayEnabled(c.env)) return c.json({ error: 'Online payments are not configured.' }, 400)
+
+  const done = (await c.env.DB.prepare(`SELECT COALESCE(SUM(amount), 0) AS n FROM refunds WHERE order_id = ?`).bind(id).first()).n
+  const remaining = order.total - done
+  const amount = body.amount === undefined || body.amount === '' || body.amount === null ? remaining : Number(body.amount)
+  if (!Number.isInteger(amount) || amount < 1) return c.json({ error: 'Enter a refund amount in whole rupees (1 or more).' }, 400)
+  if (amount > remaining) return c.json({ error: `You can refund at most ₹${remaining} on this order.` }, 400)
+  const reason = String(body.reason || '').trim().slice(0, 200)
+
+  let refund
+  try {
+    refund = await refundGatewayPayment(c.env, order.payment_id, amount, { receipt: `${id}-${Date.now().toString(36)}`, reason: reason || undefined })
+  } catch (err) {
+    return c.json({ error: err.message }, 502)
+  }
+  const at = now()
+  const full = done + amount >= order.total
+  try {
+    await c.env.DB.batch([
+      c.env.DB.prepare(`INSERT INTO refunds (id, order_id, payment_id, amount, reason, status, actor, at) VALUES (?,?,?,?,?,?,?,?)`).bind(refund.id, id, order.payment_id, amount, reason || null, refund.status, c.get('admin'), at),
+      c.env.DB.prepare(`UPDATE orders SET payment_status = CASE WHEN ?1 = 1 THEN 'refunded' ELSE payment_status END, updated_at = ?2 WHERE id = ?3`).bind(full ? 1 : 0, at, id),
+    ])
+  } catch (err) {
+    // The money has already gone back, so say so plainly instead of hiding it
+    console.error('refund saved at Razorpay but not in D1', refund.id, err)
+    return c.json({ error: `The refund (${refund.id}) went through at Razorpay but could not be saved here. Check the Razorpay dashboard and do not refund again.` }, 500)
+  }
+  if (body.cancel === true && order.status !== 'cancelled') {
+    await c.env.DB.batch([
+      c.env.DB.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ?1 WHERE id = ?2`).bind(at, id),
+      c.env.DB.prepare(`INSERT INTO status_history (order_id, status, actor, at) VALUES (?,?,?,?)`).bind(id, 'cancelled', c.get('admin'), at),
+    ])
+    await releaseStock(c.env.DB, linesFromOrder(order), at).catch((err) => console.error('stock release failed', err))
+  }
+  c.executionCtx.waitUntil(notifyRefund(c.env, { id, name: order.customer_name, email: order.email, amount, full, reason }))
+  return c.json({ ok: true, refundId: refund.id, amount, full, status: refund.status, emailed: !order.email.endsWith('@invalid') })
 })
 
 // Blank-tee stock: every fit/colour/size we make, with its count (null = not tracked)

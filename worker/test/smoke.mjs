@@ -515,6 +515,31 @@ if (!REMOTE) {
   check('payment: a repeated payment event sends no extra emails', mails.length === 2)
   check('abandon: a paid order is never removed', (await (await abandon(second.orderId, { email: shopCustomer.email, gatewayOrderId: 'order_F2' })).json()).removed === false)
 
+  // Admin refunds (money goes back through Razorpay): partial, full, limits, cancel + stock
+  mails.length = 0
+  const refundPost = (id, body) => adm('/orders/' + id + '/refund', { method: 'POST', body: JSON.stringify(body), headers: json })
+  const sTotal = (await orderOf(second.orderId)).total
+  const unpaidRf = await (await online(1)).json()
+  check('refund: an unpaid order cannot be refunded', (await refundPost(unpaidRf.orderId, { amount: 1 })).status === 400)
+  check('refund: amount must be a whole number', (await refundPost(second.orderId, { amount: 1.5 })).status === 400)
+  check('refund: more than was paid is refused', (await refundPost(second.orderId, { amount: sTotal + 1 })).status === 400)
+  const part = await refundPost(second.orderId, { amount: 100, reason: 'Wrong size sent' })
+  const partBody = await part.json()
+  const afterPart = await orderOf(second.orderId)
+  check('refund: a partial refund is recorded and the order stays paid', part.status === 200 && partBody.full === false && afterPart.payment_status === 'paid' && afterPart.refunds.length === 1 && afterPart.refunds[0].amount === 100 && afterPart.refunds[0].reason === 'Wrong size sent', JSON.stringify([part.status, partBody, afterPart.refunds]))
+  check('refund: the customer is emailed about it', mails.length === 1 && mails[0].to === 'shop@example.com' && /refund of ₹100/.test(mails[0].subject), JSON.stringify(mails.map((m) => m.subject)))
+  check('refund: cannot refund more than what is left after a partial refund', (await refundPost(second.orderId, { amount: sTotal })).status === 400)
+  const rest = await (await refundPost(second.orderId, {})).json()
+  const afterFull = await orderOf(second.orderId)
+  check('refund: leaving the amount empty refunds the rest and marks the order refunded', rest.full === true && rest.amount === sTotal - 100 && afterFull.payment_status === 'refunded', JSON.stringify([rest, afterFull.payment_status]))
+  check('refund: a fully refunded order cannot be refunded again', (await refundPost(second.orderId, { amount: 1 })).status === 400)
+  const before = await qty()
+  const third = await (await online(1)).json()
+  await paid(third.orderId, third.total * 100, 'ev-refund')
+  check('refund: stock is held while the order is paid', (await qty()) === before - 1)
+  const canc = await (await refundPost(third.orderId, { cancel: true })).json()
+  check('refund: with cancel the order is cancelled and its tee goes back to stock', canc.ok === true && (await orderOf(third.orderId)).status === 'cancelled' && (await qty()) === before, JSON.stringify([canc, await qty(), before]))
+
   mails.length = 0
   const oldClient = await (await jpost('/api/shop-orders', { customer: shopCustomer, payment: 'cod', items: [{ ...line, qty: 1 }] }, pf)).json()
   check('cod: there is no cash on delivery, so a cod request is a normal prepaid order with no email yet', oldClient.method === 'online' && !!oldClient.payment?.gatewayOrderId && mails.length === 0, JSON.stringify(oldClient))

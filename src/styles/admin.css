@@ -57,3 +57,7 @@
 .ad__stockcell { height: 38px; text-align: center; font-variant-numeric: tabular-nums; }
 .ad__stockcell.is-low { background: #fbf1d9; border-color: #e0b84c; }
 .ad__stockcell.is-out { background: #f9e1e0; border-color: var(--danger); }
+.ad__refund { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.ad__refund h3 { margin: 0; font-size: 15px; }
+.ad__check { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; }
+.ad__check input { margin-top: 3px; }
