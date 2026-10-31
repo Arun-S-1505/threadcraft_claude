@@ -35,7 +35,7 @@ export const SITE = {
     freeShippingThreshold: 999, // custom order value (in currency units) for free delivery
     shippingFee: 79, // flat fee below the threshold
     dispatchHours: 48, // "printed and shipped within 48 hours"
-    returnDays: 7,
+    returnDays: 3,
     gsmRegular: 180, // regular fit tees
     gsmOversized: 240, // oversized tees
   },

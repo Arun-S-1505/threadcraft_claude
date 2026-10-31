@@ -114,7 +114,7 @@ const POLICIES = {
     intro: 'Simple, fair and clearly written.',
     sections: [
       ['Custom studio orders: no returns', 'T-shirts made in the Custom Studio cannot be returned, exchanged or refunded. Each one is printed to order from your own design and cannot be resold, so please check the design, placement, colour and size in the 3D preview before you pay.'],
-      ['Damaged or misprinted custom orders', 'If your custom tee arrives damaged, or the print does not match the design you approved in the studio, email us with your order number and clear photos and we will reprint or refund it at no cost.'],
+      ['Damaged or misprinted custom orders', 'If your custom tee arrives damaged, or the print does not match the design you approved in the studio if there are any design placement issues, email us with your order number and clear photos and we will reprint or refund it at no cost.'],
       ['Collection t-shirts', `Unworn, unwashed t-shirts from the collection can be returned or exchanged within ${SITE.policy.returnDays} days of delivery, with tags and packaging intact.`],
       ['How to start a return', `Email ${SITE.contact.email} (or message us on Instagram) with your order number and a photo if the item is faulty. We will guide you through the next steps.`],
       ['Refunds', 'Approved refunds are issued to your original payment method (the UPI account, card or bank account you paid from).'],
@@ -128,7 +128,7 @@ const POLICIES = {
       ['Accounts', 'If you sign in, we save your name, email and delivery details so your next checkout is filled in for you. You can sign in with a one-time email code, a password you choose, or Google (we never see your Google password). A cookie keeps you signed in on your device for up to 30 days.'],
       ['Payments', 'Online payments are handled by Razorpay. Your card, UPI or bank details go to Razorpay and are never seen or stored by us; we keep only the payment reference and its status.'],
       ['How we use it', 'To process and deliver your order, email you about it (order confirmation, shipping and completion), provide support, and, if you subscribe, send news about new collections. We do not sell your personal information.'],
-      ['Who we share it with', 'Only the services we need to run the shop: Razorpay for payments, Resend to send emails, Cloudflare for hosting and file storage, and Shiprocket and its courier partners, who deliver your parcel (your name, phone number and address).'],
+      ['Who we share it with', 'Only the services we need to run the shop: Razorpay for payments, Resend to send emails, Cloudflare for hosting and file storage, and courier partners, who deliver your parcel (your name, phone number and address).'],
       ['Your artwork', 'Artwork you upload is stored privately and used only to produce your order. It is not public and not shared. We keep the original file and a preview of your design with the order so it can be reprinted exactly, and delete it on request. Please only upload designs you own or have permission to print.'],
       ['Your choices', `You can ask us to access, correct or delete your information at any time by emailing ${SITE.contact.email}.`],
     ],
